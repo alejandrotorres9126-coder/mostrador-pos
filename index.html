@@ -4,37 +4,39 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mostrador</title>
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="light">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
   :root{
-    color-scheme: dark;
-    --bg:#171717;
-    --surface:#201F1E;
-    --surface-2:#171717;
+    color-scheme: light;
+    --bg:#F6EFE0;
+    --surface:#FFFCF4;
+    --surface-2:#EFE6D2;
     --paper:#FFFFFF;
     --paper-line:#E8DCC8;
-    --border:#3A3A38;
-    --border-soft:#2C2B2A;
-    --ink:#EDE6DC;
-    --ink-soft:#B7A78F;
-    --ink-faint:#8C7C64;
-    --accent:#E08A4F;
-    --accent-strong:#F0A876;
-    --accent-soft:#3A2618;
-    --accent-ink:#1A1008;
-    --good:#7FB86A;
-    --good-soft:#1E2A16;
-    --warn:#E0A83E;
-    --warn-soft:#332A12;
-    --danger:#E07A68;
-    --danger-soft:#331D17;
-    --qr:#B79BE0;
-    --qr-soft:#2A2140;
-    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 24px -10px rgba(0,0,0,.55);
+    --border:#D9CBAA;
+    --border-soft:#E6D9BE;
+    --ink:#2B1D12;
+    --ink-soft:#6B5A42;
+    --ink-faint:#75644A;
+    --accent:#A14A1C;
+    --accent-strong:#C96530;
+    --accent-soft:#F1DCC6;
+    --accent-ink:#FFFBF2;
+    --good:#3E6B30;
+    --good-soft:#E1EEDA;
+    --warn:#7D5416;
+    --warn-soft:#F5E8CC;
+    --danger:#B03229;
+    --danger-soft:#F5DCD6;
+    --qr:#6B4FA0;
+    --qr-soft:#E8E0F5;
+    --traful:#16767A;
+    --traful-soft:#DFF1F0;
+    --shadow:0 1px 2px rgba(60,40,15,.08), 0 10px 24px -10px rgba(60,40,15,.18);
     --radius:10px;
   }
-  /* La paleta de arriba se usa siempre, sin importar la preferencia de tema del sistema operativo (no hay auto-cambio por prefers-color-scheme). */
+  /* Tema claro tipo almacén — paleta fija, no cambia con el modo oscuro del sistema operativo. */
 
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -163,6 +165,8 @@
   .btn.ghost:hover{background:var(--surface-2);}
   .btn.danger-text{color:var(--danger); border-color:transparent; background:transparent;}
   .btn.danger-text:hover{background:var(--danger-soft);}
+  .btn.danger{color:var(--danger); border-color:var(--danger); background:var(--danger-soft);}
+  .btn.danger:hover{filter:brightness(1.1);}
   .btn.sm{padding:6px 10px; font-size:12px; border-radius:7px;}
   .btn.icon{padding:7px; width:32px; height:32px;}
   .btn svg{width:15px; height:15px; flex:none;}
@@ -185,6 +189,7 @@
   .chip.neutral{background:var(--surface-2); color:var(--ink-soft); border:1px solid var(--border-soft);}
   .chip.accent{background:var(--accent-soft); color:var(--accent);}
   .chip.qr{background:var(--qr-soft); color:var(--qr);}
+  .chip.traful{background:var(--traful-soft); color:var(--traful);}
   button.chip{border:none; cursor:pointer;}
 
   .toast-wrap{position:fixed; bottom:18px; left:50%; transform:translateX(-50%); display:flex; flex-direction:column; gap:8px; z-index:80; align-items:center;}
@@ -208,12 +213,11 @@
   /* ---------- Vender tab ---------- */
   .pos-grid{
     display:grid; grid-template-columns:1fr 1fr; align-items:start;
-    grid-template-areas:"catalog catalog" "cart ticket";
+    grid-template-areas:"catalog catalog" "cart cart";
     gap:16px; margin-top:16px;
   }
   .catalog-pane{grid-area:catalog;}
   .cart-pane{grid-area:cart;}
-  .ticket-pane{grid-area:ticket;}
   .catalog-toolbar{display:flex; gap:8px; padding:12px 14px; border-bottom:1px solid var(--border-soft); flex-wrap:wrap;}
   .search-box{position:relative; flex:1; min-width:160px;}
   .search-box input{width:100%; padding:9px 10px 9px 32px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); font-size:13.5px;}
@@ -259,9 +263,9 @@
   .cart-line .rm:hover{color:var(--danger); background:var(--danger-soft);}
 
   .pay-section{padding:14px; border-top:1px solid var(--border-soft); display:flex; flex-direction:column; gap:12px;}
-  .pay-methods{display:flex; gap:8px;}
+  .pay-methods{display:flex; gap:8px; flex-wrap:wrap;}
   .pay-method{
-    flex:1; border:1px solid var(--border); border-radius:8px; padding:9px 4px; text-align:center; cursor:pointer;
+    flex:1 1 72px; border:1px solid var(--border); border-radius:8px; padding:9px 4px; text-align:center; cursor:pointer;
     font-size:12px; font-weight:600; color:var(--ink-soft); background:var(--surface);
   }
   .pay-method.on{border-color:var(--accent); color:var(--accent); background:var(--accent-soft);}
@@ -273,28 +277,32 @@
   .totals .row{display:flex; justify-content:space-between; font-size:12.5px; color:var(--ink-soft);}
   .totals .row.total{font-size:17px; font-weight:800; color:var(--ink); padding-top:4px;}
   .totals .row .v{font-family:'IBM Plex Mono';}
-  .cart-actions{display:flex; gap:8px; padding:0 14px 14px;}
+  .cart-actions{display:flex; flex-direction:column; gap:10px; padding:0 14px 14px;}
   .cart-actions .btn.primary{flex:1;}
+  .ticket-scale-compact{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .ticket-scale-compact .hint{margin-right:2px;}
+  .ticket-scale-compact .ticket-w{font-size:11px; padding:5px 9px;}
+  .ticket-scale-compact .btn.ghost{margin-left:auto;}
 
   /* ---------- ticket ---------- */
-  .ticket-pane .panel-body{display:flex; flex-direction:column; align-items:center; gap:12px;}
-  .ticket-scale{display:flex; gap:6px; align-self:flex-start;}
-  .ticket-scale button{font-size:11px; padding:5px 9px;}
   .ticket{
-    background:var(--paper); color:#1b1b16; width:100%; max-width:296px; padding:16px 14px;
-    font-family:'IBM Plex Mono', monospace; font-size:11.5px; line-height:1.55;
+    background:var(--paper); color:#000000; width:100%; max-width:296px; padding:16px 14px;
+    font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:1.75;
     box-shadow:0 2px 0 var(--paper-line), 0 10px 22px -12px rgba(0,0,0,.4);
     border-radius:2px;
   }
-  .ticket.w58{max-width:230px; font-size:10.5px;}
+  .ticket.w58{max-width:230px; font-size:12.5px;}
   .ticket .t-center{text-align:center;}
-  .ticket .t-name{font-weight:700; font-size:13px;}
-  .ticket .t-dim{color:#6b6a5f; font-size:10.5px;}
-  .ticket hr{border:none; border-top:1px dashed #a9a692; margin:8px 0;}
-  .ticket .t-item{display:flex; justify-content:space-between; gap:8px;}
-  .ticket .t-item .qn{color:#55544a;}
-  .ticket .t-total{display:flex; justify-content:space-between; font-weight:700; font-size:13px;}
-  .ticket .t-foot{text-align:center; color:#6b6a5f; font-size:10px; margin-top:6px;}
+  .ticket .t-center > div{margin-bottom:4px;}
+  .ticket .t-name{font-weight:700; font-size:16px;}
+  .ticket .t-dim{color:#3a3832; font-size:12.5px;}
+  .ticket hr{border:none; border-top:1px dashed #a9a692; margin:10px 0;}
+  .ticket .t-item{display:flex; justify-content:space-between; gap:8px; margin-bottom:7px;}
+  .ticket .t-item:last-child{margin-bottom:0;}
+  .ticket .t-item .qn{color:#333127; font-weight:700; font-size:16px;}
+  .ticket .t-total{display:flex; justify-content:space-between; font-weight:700; font-size:16px;}
+  .ticket .t-foot{text-align:center; color:#3a3832; font-size:12px; margin-top:10px;}
+  .ticket .t-void{text-align:center; font-weight:700; font-size:16px; color:#000; border:2px solid #000; border-radius:4px; padding:4px 0; margin:10px 0; letter-spacing:.04em;}
 
   /* ---------- productos / stock tab ---------- */
   .table-wrap{overflow-x:auto;}
@@ -337,11 +345,14 @@
   .stat-card .lbl{font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-faint); font-weight:600;}
   .stat-card .val{font-family:'IBM Plex Mono'; font-size:22px; font-weight:600; margin-top:4px;}
   .sale-card{border:1px solid var(--border-soft); border-radius:9px; margin-bottom:9px; overflow:hidden;}
+  .sale-card.voided{opacity:.7;}
+  .sale-card.voided .sale-head{background:var(--danger-soft);}
   .sale-head{display:flex; align-items:center; gap:10px; padding:11px 14px; cursor:pointer; background:var(--surface); flex-wrap:wrap;}
   .sale-head:hover{background:var(--surface-2);}
   .sale-head .sid{font-family:'IBM Plex Mono'; font-size:11.5px; color:var(--ink-faint); width:110px; flex:none;}
   .sale-head .sale-seller{font-size:12px; font-weight:700; color:var(--ink-soft); white-space:nowrap;}
   .sale-head .stotal{font-family:'IBM Plex Mono'; font-weight:700; font-size:13.5px; margin-left:auto;}
+  .sale-head .stotal.struck{text-decoration:line-through; color:var(--ink-faint);}
   .sale-detail{display:none; padding:0 14px 14px; background:var(--surface);}
   .sale-detail.open{display:block;}
   .sale-detail .li{display:flex; justify-content:space-between; font-size:12.5px; padding:3px 0; color:var(--ink-soft);}
@@ -382,7 +393,7 @@
   }
 
   @media (max-width:900px){
-    .pos-grid{grid-template-columns:1fr; grid-template-areas:"catalog" "cart" "ticket";}
+    .pos-grid{grid-template-columns:1fr; grid-template-areas:"catalog" "cart";}
   }
   @media (max-width:720px){
     .nav{overflow-x:auto;}
@@ -393,27 +404,28 @@
   /* ---------- balance report (impresión / PDF) ---------- */
   .report-controls{display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;}
   .report-controls .field{min-width:140px;}
-  .report{font-family:'IBM Plex Sans', sans-serif; color:#1b1f24; background:#fff;}
-  .report h1{font-family:'Archivo'; font-size:19px; margin:0 0 3px;}
-  .report .report-meta{font-size:10.5px; color:#5b6470; margin-bottom:14px;}
+  .report{font-family:Arial, Helvetica, sans-serif; color:#1b1f24; background:#fff;}
+  .report h1{font-family:Arial, Helvetica, sans-serif; font-weight:700; font-size:19px; margin:0 0 3px;}
+  .report .report-meta{font-size:10.5px; color:#3d434b; margin-bottom:14px;}
   .report .report-stats{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px;}
   .report .stat{border:1px solid #d8dde3; border-radius:6px; padding:8px 11px; min-width:88px;}
-  .report .stat .stat-label{display:block; font-size:9px; text-transform:uppercase; letter-spacing:.04em; color:#5b6470; margin-bottom:3px;}
-  .report .stat b{display:block; font-family:'IBM Plex Mono'; font-size:14px;}
-  .report .stat small{display:block; font-size:9px; color:#8993A0; margin-top:2px;}
+  .report .stat .stat-label{display:block; font-size:9px; text-transform:uppercase; letter-spacing:.04em; color:#3d434b; margin-bottom:3px;}
+  .report .stat b{display:block; font-family:Arial, Helvetica, sans-serif; font-size:14px;}
+  .report .stat small{display:block; font-size:9px; color:#4b525a; margin-top:2px;}
   .report .report-section-title{font-weight:700; font-size:11.5px; margin:18px 0 6px; text-transform:uppercase; letter-spacing:.03em;}
   .report table{width:100%; border-collapse:collapse; font-size:10px; margin-bottom:4px;}
   .report th{text-align:left; border-bottom:1.5px solid #1b1f24; padding:5px 6px; font-size:9px; text-transform:uppercase; letter-spacing:.03em;}
   .report td{padding:5px 6px; border-bottom:1px solid #e2e6ea;}
-  .report td.num, .report th.num{text-align:right; font-family:'IBM Plex Mono';}
+  .report td.num, .report th.num{text-align:right; font-family:Arial, Helvetica, sans-serif;}
   .report .report-total-row td{font-weight:700; border-top:2px solid #1b1f24; border-bottom:none;}
+  .report .void-row td{text-decoration:line-through; color:#8993A0;}
 
   /* ---------- print ---------- */
   #print-root{display:none;}
   @media print{
-    body *{visibility:hidden;}
-    #print-root, #print-root *{visibility:visible;}
-    #print-root{display:block; position:fixed; top:0; left:0; margin:0; padding:0;}
+    #loginScreen, #appRoot{display:none !important;}
+    #print-root, #print-root *{font-family:Arial, Helvetica, sans-serif !important;}
+    #print-root{display:block !important; position:fixed; top:0; left:0; margin:0; padding:0;}
     @page{margin:4mm;}
     .ticket{box-shadow:none; max-width:none;}
     .report table tr{break-inside:avoid;}
@@ -533,6 +545,7 @@
               <div class="pay-method on" data-pay="efectivo">Efectivo</div>
               <div class="pay-method" data-pay="qr">QR</div>
               <div class="pay-method" data-pay="posnet">Posnet</div>
+              <div class="pay-method" data-pay="transferencia">Transferencia</div>
             </div>
             <div class="adjust-row admin-only">
               <div class="field">
@@ -553,19 +566,13 @@
             </div>
           </div>
           <div class="cart-actions">
-            <button class="btn primary" id="confirmSaleBtn" disabled>Confirmar venta e imprimir</button>
-          </div>
-        </div>
-
-        <div class="panel ticket-pane">
-          <div class="panel-head"><h2>Vista previa del ticket</h2></div>
-          <div class="panel-body">
-            <div class="ticket-scale">
+            <div class="ticket-scale-compact">
+              <span class="hint">Ancho de ticket:</span>
               <button class="btn sm ticket-w on" data-w="80">80mm</button>
               <button class="btn sm ticket-w" data-w="58">58mm</button>
+              <button class="btn sm ghost" id="printPreviewBtn">Imprimir prueba</button>
             </div>
-            <div class="ticket" id="ticketPreview"></div>
-            <button class="btn sm" id="printPreviewBtn">Imprimir vista previa</button>
+            <button class="btn primary" id="confirmSaleBtn" disabled>Confirmar venta e imprimir</button>
           </div>
         </div>
       </div>
@@ -790,7 +797,8 @@ var auth = getAuth(fbApp);
   var PAYMENT_META = {
     efectivo:{label:"Efectivo", chip:"good"},
     qr:{label:"QR", chip:"qr"},
-    posnet:{label:"Posnet", chip:"accent"}
+    posnet:{label:"Posnet", chip:"accent"},
+    transferencia:{label:"Transferencia", chip:"traful"}
   };
 
   var ICONS = {
@@ -838,6 +846,7 @@ var auth = getAuth(fbApp);
   function productRef(id){ return doc(db,"products",id); }
   function sellerRef(id){ return doc(db,"sellers",id); }
   function settingsRef(){ return doc(db,"settings","main"); }
+  function saleRef(id){ return doc(db,"sales",id); }
 
   function saveProductDoc(p){
     setDoc(productRef(p.id), p).catch(function(e){ console.error(e); toast("No se pudo guardar en la nube", true); });
@@ -890,6 +899,7 @@ var auth = getAuth(fbApp);
         if(x.paymentMethod === "tarjeta") x.paymentMethod = "posnet";
         if(!PAYMENT_META[x.paymentMethod]) x.paymentMethod = "efectivo";
         if(!x.sellerName) x.sellerName = "—";
+        if(typeof x.cancelled !== "boolean") x.cancelled = false;
         return x;
       }).sort(function(a,b){ return a.ts - b.ts; });
       dataReady.sales = true; tryStart(); if(appStarted) renderFromRemote();
@@ -964,6 +974,7 @@ var auth = getAuth(fbApp);
   var pendingDelete = null;
   var pendingSellerDelete = null;
   var pendingReset = false;
+  var pendingCancelSale = null;
 
   var ui = {
     search:"", category:"Todos", payMethod:"efectivo",
@@ -1366,6 +1377,27 @@ var auth = getAuth(fbApp);
     );
   }
 
+  function buildCreditNoteHtml(sale){
+    var s = state.settings;
+    var when = new Date(sale.cancelledAt || Date.now());
+    var dateStr = when.toLocaleDateString("es-AR") + " " + when.toLocaleTimeString("es-AR", {hour:"2-digit", minute:"2-digit"});
+    var itemsHtml = sale.items.map(function(it){
+      return '<div class="t-item"><span>' + escapeHtml(it.name) + '<span class="qn"> ×' + it.qty + '</span></span><span class="num">' + formatMoney(it.price*it.qty) + '</span></div>';
+    }).join("");
+    return (
+      '<div class="t-center"><div class="t-name">' + escapeHtml(s.businessName) + '</div>' +
+      (s.address ? '<div class="t-dim">' + escapeHtml(s.address) + '</div>' : '') +
+      '<div class="t-dim">' + dateStr + '</div></div>' +
+      '<div class="t-void">NOTA DE CRÉDITO<br>VENTA ANULADA</div>' +
+      '<hr>' + itemsHtml + '<hr>' +
+      '<div class="t-total"><span>TOTAL ANULADO</span><span class="num">' + formatMoney(sale.total) + '</span></div>' +
+      '<div class="t-dim" style="margin-top:6px;">Corresponde al ticket N.° ' + sale.shortId + '</div>' +
+      '<div class="t-dim">Vendido por: ' + escapeHtml(sale.sellerName||"—") + '</div>' +
+      '<div class="t-dim">Anulado por: ' + escapeHtml(sale.cancelledBy||"—") + '</div>' +
+      '<div class="t-foot">El stock de estos productos<br>fue repuesto automáticamente.</div>'
+    );
+  }
+
   function currentIdentityName(){
     if(session.role === "admin") return "Administrador";
     var s = findSeller(session.sellerId);
@@ -1374,6 +1406,7 @@ var auth = getAuth(fbApp);
 
   function renderTicketPreview(){
     var el = document.getElementById("ticketPreview");
+    if(!el) return;
     el.className = "ticket" + (ui.ticketWidth===58 ? " w58" : "");
     if(cart.length === 0){
       el.innerHTML = '<div class="t-center t-dim">El ticket se arma a medida<br>que agregás productos.</div>';
@@ -1559,19 +1592,25 @@ var auth = getAuth(fbApp);
         var itemsCount = sale.items.reduce(function(s,it){ return s+it.qty; },0);
         var open = ui.openSaleId === sale.id;
         var pm = PAYMENT_META[sale.paymentMethod] || PAYMENT_META.efectivo;
-        return '<div class="sale-card">' +
+        var voided = !!sale.cancelled;
+        return '<div class="sale-card' + (voided ? ' voided' : '') + '">' +
           '<div class="sale-head" data-id="' + sale.id + '">' +
             '<span class="sid">' + when.toLocaleDateString("es-AR") + ' ' + when.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"}) + '</span>' +
             '<span class="sale-seller">' + escapeHtml(sale.sellerName||"—") + '</span>' +
             '<span class="chip neutral">' + itemsCount + ' u.</span>' +
             '<span class="chip ' + pm.chip + '">' + pm.label + '</span>' +
-            '<span class="stotal num">' + formatMoney(sale.total) + '</span>' +
+            (voided ? '<span class="chip danger">ANULADA</span>' : '') +
+            '<span class="stotal num' + (voided ? ' struck' : '') + '">' + formatMoney(sale.total) + '</span>' +
           '</div>' +
           '<div class="sale-detail' + (open?' open':'') + '" data-detail="' + sale.id + '">' +
             sale.items.map(function(it){ return '<div class="li"><span>' + escapeHtml(it.name) + ' ×' + it.qty + '</span><span class="v num">' + formatMoney(it.price*it.qty) + '</span></div>'; }).join("") +
             (sale.discountPct>0 ? '<div class="li"><span>Descuento (' + sale.discountPct + '%)</span><span class="v num">−' + formatMoney(sale.discountAmt) + '</span></div>' : '') +
             (sale.surchargePct>0 ? '<div class="li"><span>Recargo (' + sale.surchargePct + '%)</span><span class="v num">+' + formatMoney(sale.surchargeAmt) + '</span></div>' : '') +
-            '<div style="margin-top:10px; display:flex; gap:8px;"><button class="btn sm reprint-btn" data-id="' + sale.id + '">Reimprimir</button></div>' +
+            (voided ? '<div class="li"><span>Anulada por ' + escapeHtml(sale.cancelledBy||"—") + '</span><span class="v">' + new Date(sale.cancelledAt||sale.ts).toLocaleString("es-AR") + '</span></div>' : '') +
+            '<div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">' +
+              '<button class="btn sm reprint-btn" data-id="' + sale.id + '">' + (voided ? 'Reimprimir nota de crédito' : 'Reimprimir') + '</button>' +
+              (!voided ? '<button class="btn sm danger admin-only cancel-sale-btn" data-id="' + sale.id + '">Anular venta</button>' : '') +
+            '</div>' +
           '</div>' +
         '</div>';
       }).join("");
@@ -1586,12 +1625,28 @@ var auth = getAuth(fbApp);
         b.addEventListener("click", function(e){
           e.stopPropagation();
           var sale = state.sales.filter(function(s){ return s.id === b.dataset.id; })[0];
-          if(sale) printSale(sale);
+          if(!sale) return;
+          if(sale.cancelled) printVoidNote(sale); else printSale(sale);
+        });
+      });
+      list.querySelectorAll(".cancel-sale-btn").forEach(function(b){
+        b.addEventListener("click", function(e){
+          e.stopPropagation();
+          var id = b.dataset.id;
+          if(pendingCancelSale === id){
+            pendingCancelSale = null;
+            cancelSale(id, b);
+            return;
+          }
+          pendingCancelSale = id;
+          var original = b.textContent;
+          b.textContent = "¿Confirmar anulación?";
+          setTimeout(function(){ if(pendingCancelSale === id){ pendingCancelSale = null; if(b.isConnected){ b.textContent = original; } } }, 3000);
         });
       });
     }
     var today = new Date(); today.setHours(0,0,0,0);
-    var todaySales = state.sales.filter(function(s){ return s.ts >= today.getTime(); });
+    var todaySales = state.sales.filter(function(s){ return s.ts >= today.getTime() && !s.cancelled; });
     var todayTotal = todaySales.reduce(function(s,x){ return s+x.total; },0);
     document.getElementById("stCountToday").textContent = todaySales.length;
     document.getElementById("stTotalToday").textContent = formatMoney(todayTotal);
@@ -1811,6 +1866,50 @@ var auth = getAuth(fbApp);
     setTimeout(function(){ window.print(); }, 60);
   }
 
+  function printVoidNote(sale){
+    var root = document.getElementById("print-root");
+    var wrapCls = "ticket" + (ui.ticketWidth===58 ? " w58" : "");
+    root.innerHTML = '<div class="' + wrapCls + '">' + buildCreditNoteHtml(sale) + '</div>';
+    setTimeout(function(){ window.print(); }, 60);
+  }
+
+  /* ---------------- anular venta (nota de crédito, repone stock) ---------------- */
+
+  function cancelSale(saleId, btn){
+    if(btn) btn.disabled = true;
+    runTransaction(db, function(tx){
+      var sRef = saleRef(saleId);
+      return tx.get(sRef).then(function(saleSnap){
+        if(!saleSnap.exists()) throw new Error("La venta ya no existe");
+        var saleData = saleSnap.data();
+        if(saleData.cancelled) throw new Error("Esa venta ya estaba anulada");
+        var items = saleData.items || [];
+        var prodRefs = items.map(function(it){ return productRef(it.productId); });
+        return Promise.all(prodRefs.map(function(ref){ return tx.get(ref); })).then(function(prodSnaps){
+          prodSnaps.forEach(function(snap, i){
+            if(snap.exists()){
+              tx.update(snap.ref, {stock: (snap.data().stock || 0) + items[i].qty});
+            }
+          });
+          var cancelledAt = Date.now();
+          var cancelledBy = currentIdentityName();
+          tx.update(sRef, {cancelled:true, cancelledAt:cancelledAt, cancelledBy:cancelledBy});
+          var fullSale = {}; Object.keys(saleData).forEach(function(k){ fullSale[k]=saleData[k]; });
+          fullSale.id = saleId; fullSale.cancelled = true; fullSale.cancelledAt = cancelledAt; fullSale.cancelledBy = cancelledBy;
+          return fullSale;
+        });
+      });
+    }).then(function(fullSale){
+      toast("Venta #" + fullSale.shortId + " anulada — stock repuesto");
+      renderHistory();
+      printVoidNote(fullSale);
+    }).catch(function(err){
+      if(btn) btn.disabled = false;
+      console.error(err);
+      toast(String((err && err.message) || "No se pudo anular la venta"), true);
+    });
+  }
+
   /* ---------------- balance / exportar PDF ---------------- */
 
   function getFilteredReportSales(){
@@ -1849,19 +1948,21 @@ var auth = getAuth(fbApp);
       periodStr = first.toLocaleDateString("es-AR") + " — " + last.toLocaleDateString("es-AR");
     } else { periodStr = "—"; }
 
-    var totalCount = sales.length;
-    var totalAmount = sales.reduce(function(a,x){ return a+x.total; },0);
-    var totalDiscount = sales.reduce(function(a,x){ return a+x.discountAmt; },0);
-    var totalSurcharge = sales.reduce(function(a,x){ return a+x.surchargeAmt; },0);
+    var validSales = sales.filter(function(s){ return !s.cancelled; });
+    var voidedCount = sales.length - validSales.length;
+    var totalCount = validSales.length;
+    var totalAmount = validSales.reduce(function(a,x){ return a+x.total; },0);
+    var totalDiscount = validSales.reduce(function(a,x){ return a+x.discountAmt; },0);
+    var totalSurcharge = validSales.reduce(function(a,x){ return a+x.surchargeAmt; },0);
 
     var byMethod = {};
-    sales.forEach(function(sale){
+    validSales.forEach(function(sale){
       var k = sale.paymentMethod;
       if(!byMethod[k]) byMethod[k] = {count:0, total:0};
       byMethod[k].count++; byMethod[k].total += sale.total;
     });
     var bySeller = {};
-    sales.forEach(function(sale){
+    validSales.forEach(function(sale){
       var k = sale.sellerName || "—";
       if(!bySeller[k]) bySeller[k] = {count:0, total:0};
       bySeller[k].count++; bySeller[k].total += sale.total;
@@ -1880,9 +1981,10 @@ var auth = getAuth(fbApp);
     var itemRows = sales.map(function(sale){
       var when = new Date(sale.ts);
       var pm = PAYMENT_META[sale.paymentMethod] || PAYMENT_META.efectivo;
-      return '<tr>' +
+      var voided = !!sale.cancelled;
+      return '<tr' + (voided ? ' class="void-row"' : '') + '>' +
         '<td>' + when.toLocaleDateString("es-AR") + ' ' + when.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"}) + '</td>' +
-        '<td>#' + sale.shortId + '</td>' +
+        '<td>#' + sale.shortId + (voided ? ' (ANULADA)' : '') + '</td>' +
         '<td>' + escapeHtml(sale.sellerName||"—") + '</td>' +
         '<td>' + escapeHtml(pm.label) + '</td>' +
         '<td class="num">' + formatMoney(sale.subtotal) + '</td>' +
@@ -1900,6 +2002,7 @@ var auth = getAuth(fbApp);
         '<div class="stat"><span class="stat-label">Total facturado</span><b>' + formatMoney(totalAmount) + '</b></div>' +
         '<div class="stat"><span class="stat-label">Descuentos</span><b>−' + formatMoney(totalDiscount) + '</b></div>' +
         '<div class="stat"><span class="stat-label">Recargos</span><b>+' + formatMoney(totalSurcharge) + '</b></div>' +
+        (voidedCount>0 ? '<div class="stat"><span class="stat-label">Anuladas</span><b>' + voidedCount + '</b></div>' : '') +
         methodStats +
       '</div>' +
       '<div class="report-section-title">Por vendedor</div>' +
