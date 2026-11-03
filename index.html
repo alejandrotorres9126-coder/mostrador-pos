@@ -236,15 +236,15 @@
   .prod-card{
     border:1px solid var(--border-soft); border-radius:9px; background:var(--surface-2);
     padding:11px; display:flex; flex-direction:column; gap:8px; cursor:pointer; text-align:left;
-    transition:border-color .12s, transform .06s;
+    transition:border-color .12s, transform .06s; color:var(--ink);
   }
   .prod-card:hover{border-color:var(--accent);}
   .prod-card:active{transform:scale(.98);}
   .prod-card:disabled{opacity:.5; cursor:not-allowed;}
   .prod-card .cat-tag{font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-faint);}
-  .prod-card .name{font-size:13px; font-weight:600; line-height:1.3; min-height:2.6em;}
+  .prod-card .name{font-size:13px; font-weight:600; line-height:1.3; min-height:2.6em; color:var(--ink);}
   .prod-card .foot{display:flex; align-items:center; justify-content:space-between; gap:6px; margin-top:auto;}
-  .prod-card .price{font-family:'IBM Plex Mono'; font-weight:600; font-size:13.5px;}
+  .prod-card .price{font-family:'IBM Plex Mono'; font-weight:600; font-size:13.5px; color:var(--ink);}
   .empty-hint{padding:30px 14px; text-align:center; color:var(--ink-faint); font-size:13px;}
 
   .cart-list{display:flex; flex-direction:column; gap:8px; padding:14px; max-height:300px; overflow-y:auto;}
@@ -269,6 +269,10 @@
     font-size:12px; font-weight:600; color:var(--ink-soft); background:var(--surface);
   }
   .pay-method.on{border-color:var(--accent); color:var(--accent); background:var(--accent-soft);}
+  .fiado-picker{background:var(--warn-soft); border:1px solid var(--warn); border-radius:8px; padding:10px 12px; display:flex; flex-direction:column; gap:6px;}
+  .fiado-picker label{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:var(--warn);}
+  .fiado-picker-row{display:flex; gap:8px;}
+  .fiado-picker-row select{flex:1; padding:8px 9px; border-radius:7px; border:1px solid var(--border); background:var(--surface); font-family:inherit; font-size:13px;}
   .adjust-row{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
   .adjust-row .field input{padding:7px 8px; font-size:13px;}
   .auto-surcharge-note{font-size:12px; color:var(--ink-soft); background:var(--surface-2); border:1px solid var(--border-soft); border-radius:8px; padding:10px 12px; line-height:1.5;}
@@ -362,6 +366,8 @@
   .sale-detail{display:none; padding:0 14px 14px; background:var(--surface);}
   .sale-detail.open{display:block;}
   .sale-detail .li{display:flex; justify-content:space-between; font-size:12.5px; padding:3px 0; color:var(--ink-soft);}
+  .mp-preview-item{display:flex; justify-content:space-between; gap:10px; font-size:12.5px; padding:5px 0; color:var(--ink-soft); border-bottom:1px solid var(--border-soft);}
+  .mp-preview-item:last-child{border-bottom:none;}
   .sale-detail .li .v{font-family:'IBM Plex Mono';}
   .seller-summary-row{display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--border-soft); font-size:13px;}
   .seller-summary-row:last-child{border-bottom:none;}
@@ -410,6 +416,10 @@
   /* ---------- balance report (impresión / PDF) ---------- */
   .report-controls{display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;}
   .report-controls .field{min-width:140px;}
+
+  /* ---------- filtros de historial ---------- */
+  .history-filters{display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-bottom:12px;}
+  .history-filters .field{min-width:140px;}
   .report{font-family:Arial, Helvetica, sans-serif; color:#1b1f24; background:#fff;}
   .report h1{font-family:Arial, Helvetica, sans-serif; font-weight:700; font-size:19px; margin:0 0 3px;}
   .report .report-meta{font-size:10.5px; color:#3d434b; margin-bottom:14px;}
@@ -533,7 +543,7 @@
           <div class="catalog-toolbar">
             <div class="search-box">
               <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8.5" cy="8.5" r="6"/><path d="M13 13l4.5 4.5" stroke-linecap="round"/></svg>
-              <input type="text" id="searchInput" placeholder="Buscar producto...">
+              <input type="text" id="searchInput" placeholder="Buscar producto o escanear código...">
             </div>
           </div>
           <div class="cat-chips" id="catChips"></div>
@@ -552,6 +562,16 @@
               <div class="pay-method" data-pay="qr">QR</div>
               <div class="pay-method" data-pay="posnet">Posnet</div>
               <div class="pay-method" data-pay="transferencia">Transferencia</div>
+              <div class="pay-method" data-pay="fiado">Fiado</div>
+            </div>
+            <div class="fiado-picker" id="fiadoPicker" style="display:none;">
+              <label for="fiadoCustomerSelect">Cliente</label>
+              <div class="fiado-picker-row">
+                <select id="fiadoCustomerSelect">
+                  <option value="">Elegí un cliente…</option>
+                </select>
+                <button class="btn sm ghost" type="button" id="fiadoNewCustomerBtn">+ Nuevo</button>
+              </div>
             </div>
             <div class="adjust-row admin-only">
               <div class="field">
@@ -610,7 +630,10 @@
       <div class="panel" style="margin-top:16px;">
         <div class="panel-head">
           <h2>Productos y stock</h2>
-          <button class="btn primary sm" id="newProductBtn">+ Nuevo producto</button>
+          <div style="display:flex; gap:8px;">
+            <button class="btn ghost sm" id="massPriceBtn">Aumentar precios</button>
+            <button class="btn primary sm" id="newProductBtn">+ Nuevo producto</button>
+          </div>
         </div>
         <div class="table-wrap">
           <table>
@@ -620,6 +643,8 @@
                 <th>Producto</th>
                 <th>Categoría</th>
                 <th class="num">Precio</th>
+                <th class="num">Costo</th>
+                <th class="num">Margen</th>
                 <th class="num">Stock</th>
                 <th></th>
                 <th></th>
@@ -637,6 +662,11 @@
         <div class="stat-card"><div class="lbl">Ventas hoy</div><div class="val" id="stCountToday">0</div></div>
         <div class="stat-card"><div class="lbl">Total hoy</div><div class="val" id="stTotalToday">$0,00</div></div>
         <div class="stat-card"><div class="lbl">Ticket promedio</div><div class="val" id="stAvgToday">$0,00</div></div>
+      </div>
+      <div class="stats-row admin-only" style="margin-top:10px;">
+        <div class="stat-card"><div class="lbl">Ganancia hoy</div><div class="val" id="stProfitToday">$0,00</div></div>
+        <div class="stat-card"><div class="lbl">Costo vendido hoy</div><div class="val" id="stCostToday">$0,00</div></div>
+        <div class="stat-card"><div class="lbl">Margen promedio</div><div class="val" id="stMarginToday">0%</div></div>
       </div>
       <div class="panel admin-only" style="margin-bottom:14px;">
         <div class="panel-head"><h2>Exportar balance</h2></div>
@@ -672,9 +702,99 @@
       <div class="panel">
         <div class="panel-head"><h2>Ventas registradas</h2></div>
         <div class="panel-body">
-          <div class="cat-chips admin-only" id="sellerFilterChips" style="padding:0 0 12px;"></div>
+          <div class="history-filters">
+            <div class="field">
+              <label for="historyRangeSelect">Período</label>
+              <select id="historyRangeSelect">
+                <option value="all">Todo</option>
+                <option value="today">Hoy</option>
+                <option value="7d">Últimos 7 días</option>
+                <option value="month">Este mes</option>
+                <option value="custom">Personalizado</option>
+              </select>
+            </div>
+            <div class="field" id="historyFromField" style="display:none;">
+              <label for="historyFrom">Desde</label>
+              <input type="date" id="historyFrom">
+            </div>
+            <div class="field" id="historyToField" style="display:none;">
+              <label for="historyTo">Hasta</label>
+              <input type="date" id="historyTo">
+            </div>
+            <div class="field admin-only">
+              <label for="sellerFilterSelect">Vendedor</label>
+              <select id="sellerFilterSelect"></select>
+            </div>
+            <div class="field">
+              <label for="paymentFilterSelect">Método de pago</label>
+              <select id="paymentFilterSelect">
+                <option value="Todos">Todos</option>
+                <option value="efectivo">Efectivo</option>
+                <option value="qr">QR</option>
+                <option value="posnet">Posnet</option>
+                <option value="transferencia">Transferencia</option>
+                <option value="fiado">Fiado</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="voidedFilterSelect">Estado</label>
+              <select id="voidedFilterSelect">
+                <option value="todas">Todas las ventas</option>
+                <option value="anuladas">Solo anuladas</option>
+              </select>
+            </div>
+          </div>
           <div id="historyList"></div>
         </div>
+      </div>
+    </section>
+
+    <!-- CLIENTES / FIADO (admin) -->
+    <section id="tab-clientes" class="tab-panel">
+      <div class="panel" style="margin-top:16px;">
+        <div class="panel-head">
+          <h2>Clientes (cuenta corriente)</h2>
+          <button class="btn primary sm" id="newCustomerBtn" type="button">+ Cliente</button>
+        </div>
+        <div class="panel-body">
+          <p class="hint" style="margin-bottom:12px;">Clientes habituales que compran fiado. El saldo sube cuando se les vende "Fiado" y baja cuando registrás un pago.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Nombre</th><th>Teléfono</th><th class="num">Saldo</th><th></th></tr>
+              </thead>
+              <tbody id="customersTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CAJA / CIERRE (admin) -->
+    <section id="tab-caja" class="tab-panel">
+      <div class="stats-row" style="margin-top:16px;">
+        <div class="stat-card"><div class="lbl">Efectivo esperado</div><div class="val" id="cajaExpectedCash">$0,00</div></div>
+        <div class="stat-card"><div class="lbl">Ventas desde el último cierre</div><div class="val" id="cajaSalesCount">0</div></div>
+        <div class="stat-card"><div class="lbl">Total vendido</div><div class="val" id="cajaTotalSold">$0,00</div></div>
+      </div>
+      <div class="panel" style="margin-bottom:14px;">
+        <div class="panel-head"><h2>Desglose por método de pago</h2></div>
+        <div class="panel-body" id="cajaByMethodBody"></div>
+      </div>
+      <div class="panel" style="margin-bottom:14px;">
+        <div class="panel-head"><h2>Cerrar caja</h2></div>
+        <div class="panel-body">
+          <div class="field">
+            <label for="cajaCountedInput">Efectivo contado en caja</label>
+            <input type="number" id="cajaCountedInput" min="0" step="1" placeholder="0">
+          </div>
+          <p class="hint" id="cajaDiffPreview"></p>
+          <button class="btn primary" id="closeCajaBtn" type="button">Cerrar caja</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Cierres anteriores</h2></div>
+        <div class="panel-body"><div id="cajaHistoryList"></div></div>
       </div>
     </section>
 
@@ -760,13 +880,48 @@
           <select id="pfCategory"></select>
         </div>
         <div class="field"><label for="pfSku">Código (opcional)</label><input type="text" id="pfSku"></div>
-        <div class="field"><label for="pfPrice">Precio</label><input type="number" id="pfPrice" min="0" step="1"></div>
+        <div class="field"><label for="pfPrice">Precio de venta</label><input type="number" id="pfPrice" min="0" step="1"></div>
+        <div class="field"><label for="pfCost">Costo (opcional)</label><input type="number" id="pfCost" min="0" step="1"></div>
         <div class="field"><label for="pfStock">Stock inicial</label><input type="number" id="pfStock" min="0" step="1"></div>
       </div>
+      <p class="hint" id="pfMarginHint" style="margin-top:2px;"></p>
     </div>
     <div class="modal-foot">
       <button class="btn ghost" id="cancelProductBtn">Cancelar</button>
       <button class="btn primary" id="saveProductBtn">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="massPriceOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Aumentar precios</h3>
+      <button class="btn icon ghost" id="closeMassPriceModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-grid">
+        <div class="field">
+          <label for="mpCategory">Aplicar a</label>
+          <select id="mpCategory"><option value="Todos">Todos los productos</option></select>
+        </div>
+        <div class="field"><label for="mpPercent">Aumento (%)</label><input type="number" id="mpPercent" step="0.5" placeholder="Ej: 10"></div>
+        <div class="field">
+          <label for="mpRound">Redondear precio final a</label>
+          <select id="mpRound">
+            <option value="0">Sin redondeo</option>
+            <option value="10">Más cercano a $10</option>
+            <option value="50">Más cercano a $50</option>
+            <option value="100">Más cercano a $100</option>
+          </select>
+        </div>
+      </div>
+      <p class="hint" id="mpSummary" style="margin-top:12px;">Ingresá un porcentaje para ver la vista previa.</p>
+      <div id="mpPreviewList"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" id="cancelMassPriceBtn">Cancelar</button>
+      <button class="btn primary" id="applyMassPriceBtn" disabled>Aplicar aumento</button>
     </div>
   </div>
 </div>
@@ -791,6 +946,40 @@
     <div class="modal-foot">
       <button class="btn ghost" id="cancelConfirmSaleBtn">Cancelar</button>
       <button class="btn primary" id="confirmSaleModalBtn">Confirmar e imprimir</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="customerOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Nuevo cliente</h3>
+      <button class="btn icon ghost" id="closeCustomerModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label for="cfName">Nombre</label><input type="text" id="cfName" placeholder="Ej: Mario Pérez"></div>
+      <div class="field"><label for="cfPhone">Teléfono (opcional)</label><input type="text" id="cfPhone" placeholder="Ej: 11-5555-5555"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" id="cancelCustomerBtn">Cancelar</button>
+      <button class="btn primary" id="saveCustomerBtn">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="paymentOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="paymentModalTitle">Registrar pago</h3>
+      <button class="btn icon ghost" id="closePaymentModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="hint" id="paymentModalBalance"></p>
+      <div class="field"><label for="pfAmount">Monto del pago</label><input type="number" id="pfAmount" min="0" step="1" placeholder="0"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" id="cancelPaymentBtn">Cancelar</button>
+      <button class="btn primary" id="savePaymentBtn">Registrar pago</button>
     </div>
   </div>
 </div>
@@ -828,7 +1017,8 @@ var auth = getAuth(fbApp);
     efectivo:{label:"Efectivo", chip:"good"},
     qr:{label:"QR", chip:"qr"},
     posnet:{label:"Posnet", chip:"accent"},
-    transferencia:{label:"Transferencia", chip:"traful"}
+    transferencia:{label:"Transferencia", chip:"traful"},
+    fiado:{label:"Fiado", chip:"warn"}
   };
 
   var ICONS = {
@@ -841,16 +1031,35 @@ var auth = getAuth(fbApp);
 
   function defaultProducts(){
     return [
-      {id:uid(), name:"Cerveza Quilmes lata 473ml", category:"Bebidas", price:1500, stock:1000, sku:"7790012345", photo:""},
-      {id:uid(), name:"Coca-Cola 500ml", category:"Bebidas", price:1800, stock:48, sku:"", photo:""},
-      {id:uid(), name:"Agua mineral sin gas 500ml", category:"Bebidas", price:1000, stock:60, sku:"", photo:""},
-      {id:uid(), name:"Papas fritas Lays 120g", category:"Golosinas", price:2200, stock:25, sku:"", photo:""},
-      {id:uid(), name:"Alfajor Jorgito triple", category:"Golosinas", price:900, stock:8, sku:"", photo:""},
-      {id:uid(), name:"Yerba mate 1kg", category:"Almacén", price:5200, stock:15, sku:"", photo:""},
-      {id:uid(), name:"Pan lactal", category:"Almacén", price:2600, stock:0, sku:"", photo:""},
-      {id:uid(), name:"Detergente 750ml", category:"Limpieza", price:3100, stock:20, sku:"", photo:""},
-      {id:uid(), name:"Cigarrillos (paquete)", category:"Otros", price:4200, stock:30, sku:"", photo:""}
+      {id:uid(), name:"Cerveza Quilmes lata 473ml", category:"Bebidas", price:1500, cost:950, stock:1000, sku:"7790012345", photo:""},
+      {id:uid(), name:"Coca-Cola 500ml", category:"Bebidas", price:1800, cost:1100, stock:48, sku:"", photo:""},
+      {id:uid(), name:"Agua mineral sin gas 500ml", category:"Bebidas", price:1000, cost:600, stock:60, sku:"", photo:""},
+      {id:uid(), name:"Papas fritas Lays 120g", category:"Golosinas", price:2200, cost:1400, stock:25, sku:"", photo:""},
+      {id:uid(), name:"Alfajor Jorgito triple", category:"Golosinas", price:900, cost:520, stock:8, sku:"", photo:""},
+      {id:uid(), name:"Yerba mate 1kg", category:"Almacén", price:5200, cost:3800, stock:15, sku:"", photo:""},
+      {id:uid(), name:"Pan lactal", category:"Almacén", price:2600, cost:1900, stock:0, sku:"", photo:""},
+      {id:uid(), name:"Detergente 750ml", category:"Limpieza", price:3100, cost:2200, stock:20, sku:"", photo:""},
+      {id:uid(), name:"Cigarrillos (paquete)", category:"Otros", price:4200, cost:3950, stock:30, sku:"", photo:""}
     ];
+  }
+
+  function marginInfo(p){
+    var cost = typeof p.cost === "number" ? p.cost : 0;
+    var margin = p.price - cost;
+    var pct = p.price > 0 ? (margin / p.price * 100) : 0;
+    return {margin:margin, pct:pct};
+  }
+  function marginStatus(pct){
+    var label = Math.round(pct) + "%";
+    if(pct < 15) return {cls:"danger", label:label};
+    if(pct < 30) return {cls:"warn", label:label};
+    return {cls:"good", label:label};
+  }
+  function saleCost(sale){
+    return (sale.items||[]).reduce(function(sum, it){ return sum + (typeof it.cost === "number" ? it.cost : 0) * it.qty; }, 0);
+  }
+  function saleProfit(sale){
+    return sale.total - saleCost(sale);
   }
 
   function defaultSellers(){
@@ -865,11 +1074,18 @@ var auth = getAuth(fbApp);
     return {businessName:"Kiosco San Martín", address:"Av. San Martín 1450 · CABA", surchargeQR:0, surchargePosnet:15, lowStock:10, adminPassword:"1234"};
   }
 
-  var state = {products:[], sales:[], sellers:[], settings:defaultSettings()};
+  function defaultCustomers(){
+    return [
+      {id:uid(), name:"Mario (vecino)", phone:"", balance:0},
+      {id:uid(), name:"Rosa Fernández", phone:"", balance:0}
+    ];
+  }
+
+  var state = {products:[], sales:[], sellers:[], customers:[], cashClosures:[], settings:defaultSettings()};
 
   /* ---------------- Firebase: conexión en la nube (tiempo real, multi-dispositivo) ---------------- */
 
-  var dataReady = {products:false, sellers:false, sales:false, settings:false};
+  var dataReady = {products:false, sellers:false, sales:false, settings:false, customers:false, cashClosures:false};
   var domReady = false;
   var appStarted = false;
 
@@ -877,6 +1093,8 @@ var auth = getAuth(fbApp);
   function sellerRef(id){ return doc(db,"sellers",id); }
   function settingsRef(){ return doc(db,"settings","main"); }
   function saleRef(id){ return doc(db,"sales",id); }
+  function customerRef(id){ return doc(db,"customers",id); }
+  function closureRef(id){ return doc(db,"cashClosures",id); }
 
   function saveProductDoc(p){
     setDoc(productRef(p.id), p).catch(function(e){ console.error(e); toast("No se pudo guardar en la nube", true); });
@@ -893,10 +1111,13 @@ var auth = getAuth(fbApp);
   function saveSettingsDoc(){
     setDoc(settingsRef(), state.settings).catch(function(e){ console.error(e); toast("No se pudo guardar en la nube", true); });
   }
+  function saveCustomerDoc(c){
+    setDoc(customerRef(c.id), c).catch(function(e){ console.error(e); toast("No se pudo guardar en la nube", true); });
+  }
 
   function tryStart(){
     if(appStarted) return;
-    if(domReady && dataReady.products && dataReady.sellers && dataReady.sales && dataReady.settings){
+    if(domReady && dataReady.products && dataReady.sellers && dataReady.sales && dataReady.settings && dataReady.customers && dataReady.cashClosures){
       appStarted = true;
       init();
     }
@@ -907,6 +1128,9 @@ var auth = getAuth(fbApp);
       renderCatChips(); renderCatalog(); renderCart(); renderTotals(); renderTicketPreview();
       if(session.role === "seller"){ renderStockTab(); }
       if(currentTab === "historial"){ renderHistory(); }
+      if(currentTab === "clientes"){ renderCustomers(); }
+      if(currentTab === "caja"){ renderCaja(); }
+      if(ui.payMethod === "fiado"){ renderFiadoCustomerOptions(); }
     } else {
       renderLoginChooser();
     }
@@ -941,6 +1165,16 @@ var auth = getAuth(fbApp);
       Object.keys(d).forEach(function(k){ if(typeof state.settings[k] === "undefined") state.settings[k] = d[k]; });
       dataReady.settings = true; tryStart(); if(appStarted) renderFromRemote();
     }, function(e){ console.error(e); });
+
+    onSnapshot(collection(db,"customers"), function(snap){
+      state.customers = snap.docs.map(function(d){ var x = d.data(); x.id = d.id; if(typeof x.balance !== "number") x.balance = 0; return x; }).sort(function(a,b){ return a.name.localeCompare(b.name, "es"); });
+      dataReady.customers = true; tryStart(); if(appStarted) renderFromRemote();
+    }, function(e){ console.error(e); });
+
+    onSnapshot(collection(db,"cashClosures"), function(snap){
+      state.cashClosures = snap.docs.map(function(d){ var x = d.data(); x.id = d.id; return x; });
+      dataReady.cashClosures = true; tryStart(); if(appStarted) renderFromRemote();
+    }, function(e){ console.error(e); });
   }
 
   function bootstrapData(){
@@ -954,6 +1188,7 @@ var auth = getAuth(fbApp);
         var batch = writeBatch(db);
         defaultProducts().forEach(function(p){ batch.set(productRef(p.id), p); });
         defaultSellers().forEach(function(s){ batch.set(sellerRef(s.id), s); });
+        defaultCustomers().forEach(function(c){ batch.set(customerRef(c.id), c); });
         batch.set(settingsRef(), defaultSettings());
         batch.set(doc(db,"meta","counters"), {nextSaleNumber:1001});
         return batch.commit();
@@ -967,6 +1202,8 @@ var auth = getAuth(fbApp);
     var deletions = []
       .concat(state.products.map(function(p){ return productRef(p.id); }))
       .concat(state.sellers.map(function(s){ return sellerRef(s.id); }))
+      .concat(state.customers.map(function(c){ return customerRef(c.id); }))
+      .concat(state.cashClosures.map(function(c){ return closureRef(c.id); }))
       .concat(state.sales.map(function(s){ return doc(db,"sales",s.id); }));
     var chunks = [];
     for(var i=0;i<deletions.length;i+=400){ chunks.push(deletions.slice(i,i+400)); }
@@ -982,6 +1219,7 @@ var auth = getAuth(fbApp);
       var b2 = writeBatch(db);
       defaultProducts().forEach(function(p){ b2.set(productRef(p.id), p); });
       defaultSellers().forEach(function(s){ b2.set(sellerRef(s.id), s); });
+      defaultCustomers().forEach(function(c){ b2.set(customerRef(c.id), c); });
       b2.set(settingsRef(), defaultSettings());
       b2.set(doc(db,"meta","counters"), {nextSaleNumber:1001});
       return b2.commit();
@@ -1009,7 +1247,9 @@ var auth = getAuth(fbApp);
   var ui = {
     search:"", category:"Todos", payMethod:"efectivo",
     discountTouched:false, surchargeTouched:false, ticketWidth:80,
-    openSaleId:null, sellerFilter:"Todos", stockSearch:"", stockCategory:"Todos"
+    openSaleId:null, sellerFilter:"Todos", stockSearch:"", stockCategory:"Todos",
+    fiadoCustomerId:null,
+    paymentFilter:"Todos", historyRange:"all", onlyVoided:false
   };
 
   function formatMoney(n){
@@ -1235,7 +1475,7 @@ var auth = getAuth(fbApp);
 
   function navForRole(){
     if(session.role === "admin"){
-      return [{id:"vender",label:"Vender"},{id:"productos",label:"Productos"},{id:"historial",label:"Historial"},{id:"config",label:"Configuración"}];
+      return [{id:"vender",label:"Vender"},{id:"productos",label:"Productos"},{id:"clientes",label:"Clientes"},{id:"caja",label:"Caja"},{id:"historial",label:"Historial"},{id:"config",label:"Configuración"}];
     }
     return [{id:"vender",label:"Vender"},{id:"stock",label:"Stock"},{id:"historial",label:"Historial"}];
   }
@@ -1261,6 +1501,8 @@ var auth = getAuth(fbApp);
     renderNav();
     if(tab === "productos") renderProductsTable();
     if(tab === "historial") renderHistory();
+    if(tab === "clientes") renderCustomers();
+    if(tab === "caja") renderCaja();
     if(tab === "config") renderConfig();
     if(tab === "stock") renderStockTab();
   }
@@ -1272,6 +1514,8 @@ var auth = getAuth(fbApp);
     if(session.role === "admin"){
       renderProductsTable();
       renderConfig();
+      renderCustomers();
+      renderCaja();
     } else {
       renderStockTab();
     }
@@ -1296,7 +1540,11 @@ var auth = getAuth(fbApp);
     var q = ui.search.trim().toLowerCase();
     var list = state.products.filter(function(p){
       if(ui.category !== "Todos" && p.category !== ui.category) return false;
-      if(q && p.name.toLowerCase().indexOf(q) === -1) return false;
+      if(q){
+        var nameMatch = p.name.toLowerCase().indexOf(q) !== -1;
+        var skuMatch = p.sku && p.sku.toLowerCase().indexOf(q) !== -1;
+        if(!nameMatch && !skuMatch) return false;
+      }
       return true;
     });
     document.getElementById("catalog-count").textContent = list.length + " producto" + (list.length===1?"":"s");
@@ -1402,7 +1650,7 @@ var auth = getAuth(fbApp);
       (sale.surchargePct>0 ? '<div class="t-item"><span>Recargo (' + sale.surchargePct + '%)</span><span class="num">+' + formatMoney(sale.surchargeAmt) + '</span></div>' : '') +
       '<hr><div class="t-total"><span>TOTAL</span><span class="num">' + formatMoney(sale.total) + '</span></div>' +
       '<div class="t-dim" style="margin-top:6px;">Vendedor: ' + escapeHtml(sale.sellerName||"—") + '</div>' +
-      '<div class="t-dim">Pago: ' + pm.label + '</div>' +
+      '<div class="t-dim">Pago: ' + pm.label + (sale.paymentMethod==="fiado" && sale.customerName ? ' — ' + escapeHtml(sale.customerName) : '') + '</div>' +
       '<div class="t-foot">¡Gracias por su compra!<br>Ticket N.° ' + sale.shortId + '</div>'
     );
   }
@@ -1460,16 +1708,20 @@ var auth = getAuth(fbApp);
     if(!tbody) return;
     var sorted = state.products.slice().sort(function(a,b){ return a.name.localeCompare(b.name, "es"); });
     if(sorted.length === 0){
-      tbody.innerHTML = '<tr><td colspan="7" class="empty-hint">Todavía no cargaste productos.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="empty-hint">Todavía no cargaste productos.</td></tr>';
       return;
     }
     tbody.innerHTML = sorted.map(function(p){
       var st = stockStatus(p);
+      var mi = marginInfo(p);
+      var ms = marginStatus(mi.pct);
       return '<tr data-id="' + p.id + '">' +
         '<td>' + productPhotoHtml(p, "thumb-sm") + '</td>' +
         '<td><div style="font-weight:600;">' + escapeHtml(p.name) + '</div>' + (p.sku ? '<div class="hint">' + escapeHtml(p.sku) + '</div>' : '') + '</td>' +
         '<td><span class="chip neutral">' + escapeHtml(p.category) + '</span></td>' +
         '<td class="num price-cell"><input type="number" class="price-input" value="' + p.price + '" min="0" step="1" style="width:84px; text-align:right; padding:5px 7px; border:1px solid var(--border); border-radius:6px; font-family:inherit; background:var(--surface);"></td>' +
+        '<td class="num price-cell"><input type="number" class="cost-input" value="' + (p.cost||0) + '" min="0" step="1" style="width:84px; text-align:right; padding:5px 7px; border:1px solid var(--border); border-radius:6px; font-family:inherit; background:var(--surface);"></td>' +
+        '<td class="num"><span class="chip ' + ms.cls + '" title="Ganancia: ' + formatMoney(mi.margin) + '">' + ms.label + '</span></td>' +
         '<td class="num">' +
           '<div class="stock-edit">' +
             '<button class="restock-btn" data-delta="-10">−10</button>' +
@@ -1489,11 +1741,17 @@ var auth = getAuth(fbApp);
     tbody.querySelectorAll("tr").forEach(function(tr){
       var id = tr.dataset.id;
       var priceInput = tr.querySelector(".price-input");
+      var costInput = tr.querySelector(".cost-input");
       var stockInput = tr.querySelector(".stock-input");
       priceInput.addEventListener("change", function(){
         var p = findProduct(id); if(!p) return;
         var v = parseFloat(priceInput.value); if(isNaN(v) || v<0) v = p.price;
-        p.price = v; priceInput.value = v; saveProductDoc(p); renderCatalog(); renderCart(); toast("Precio actualizado");
+        p.price = v; saveProductDoc(p); renderProductsTable(); renderCatalog(); renderCart(); toast("Precio actualizado");
+      });
+      costInput.addEventListener("change", function(){
+        var p = findProduct(id); if(!p) return;
+        var v = parseFloat(costInput.value); if(isNaN(v) || v<0) v = (p.cost||0);
+        p.cost = v; saveProductDoc(p); renderProductsTable(); toast("Costo actualizado");
       });
       stockInput.addEventListener("change", function(){
         var p = findProduct(id); if(!p) return;
@@ -1591,19 +1849,17 @@ var auth = getAuth(fbApp);
 
   /* ---------------- historial (admin) ---------------- */
 
-  function renderSellerFilterChips(){
-    var el = document.getElementById("sellerFilterChips");
+  function renderSellerFilterSelect(){
+    var el = document.getElementById("sellerFilterSelect");
     if(!el) return;
     var names = {};
     state.sellers.forEach(function(s){ names[s.name] = true; });
     state.sales.forEach(function(sale){ if(sale.sellerName) names[sale.sellerName] = true; });
     var list = ["Todos"].concat(Object.keys(names).sort(function(a,b){ return a.localeCompare(b, "es"); }));
     el.innerHTML = list.map(function(n){
-      return '<button class="cat-chip' + (ui.sellerFilter===n?' on':'') + '" data-seller="' + escapeHtml(n) + '">' + escapeHtml(n) + '</button>';
+      return '<option value="' + escapeHtml(n) + '">' + escapeHtml(n) + '</option>';
     }).join("");
-    el.querySelectorAll(".cat-chip").forEach(function(btn){
-      btn.addEventListener("click", function(){ ui.sellerFilter = btn.dataset.seller; renderHistory(); });
-    });
+    el.value = ui.sellerFilter;
   }
 
   function renderHistory(){
@@ -1611,13 +1867,33 @@ var auth = getAuth(fbApp);
     if(!list) return;
     var isAdmin = session.role === "admin";
     var scopeSales = isAdmin ? state.sales : state.sales.filter(function(s){ return s.sellerId === session.sellerId; });
-    if(isAdmin) renderSellerFilterChips();
+    if(isAdmin) renderSellerFilterSelect();
+    var paymentSel = document.getElementById("paymentFilterSelect");
+    if(paymentSel) paymentSel.value = ui.paymentFilter;
+    var voidedSel = document.getElementById("voidedFilterSelect");
+    if(voidedSel) voidedSel.value = ui.onlyVoided ? "anuladas" : "todas";
+
+    var rangeSel = document.getElementById("historyRangeSelect");
+    var isCustomRange = rangeSel && rangeSel.value === "custom";
+    document.getElementById("historyFromField").style.display = isCustomRange ? "" : "none";
+    document.getElementById("historyToField").style.display = isCustomRange ? "" : "none";
+    var r = computeDateRange(rangeSel ? rangeSel.value : "all", document.getElementById("historyFrom").value, document.getElementById("historyTo").value);
+
     var sales = scopeSales.slice().sort(function(a,b){ return b.ts - a.ts; });
     if(isAdmin && ui.sellerFilter !== "Todos"){
       sales = sales.filter(function(s){ return s.sellerName === ui.sellerFilter; });
     }
+    if(ui.paymentFilter !== "Todos"){
+      sales = sales.filter(function(s){ return s.paymentMethod === ui.paymentFilter; });
+    }
+    if(ui.onlyVoided){
+      sales = sales.filter(function(s){ return s.cancelled; });
+    }
+    sales = sales.filter(function(s){ return s.ts >= r.from.getTime() && s.ts <= r.to.getTime(); });
+
+    var anyFilterActive = (isAdmin && ui.sellerFilter !== "Todos") || ui.paymentFilter !== "Todos" || ui.onlyVoided || (rangeSel && rangeSel.value !== "all");
     if(sales.length === 0){
-      list.innerHTML = '<div class="empty-hint">' + (isAdmin ? ('No hay ventas' + (ui.sellerFilter!=="Todos" ? (' de ' + escapeHtml(ui.sellerFilter)) : '') + '.') : 'Todavía no registraste ventas.') + '</div>';
+      list.innerHTML = '<div class="empty-hint">' + (anyFilterActive ? 'No hay ventas que coincidan con el filtro.' : (isAdmin ? 'No hay ventas.' : 'Todavía no registraste ventas.')) + '</div>';
     } else {
       list.innerHTML = sales.map(function(sale){
         var when = new Date(sale.ts);
@@ -1631,6 +1907,7 @@ var auth = getAuth(fbApp);
             '<span class="sale-seller">' + escapeHtml(sale.sellerName||"—") + '</span>' +
             '<span class="chip neutral">' + itemsCount + ' u.</span>' +
             '<span class="chip ' + pm.chip + '">' + pm.label + '</span>' +
+            (sale.paymentMethod==="fiado" && sale.customerName ? '<span class="chip neutral">' + escapeHtml(sale.customerName) + '</span>' : '') +
             (voided ? '<span class="chip danger">ANULADA</span>' : '') +
             '<span class="stotal num' + (voided ? ' struck' : '') + '">' + formatMoney(sale.total) + '</span>' +
           '</div>' +
@@ -1638,6 +1915,7 @@ var auth = getAuth(fbApp);
             sale.items.map(function(it){ return '<div class="li"><span>' + escapeHtml(it.name) + ' ×' + it.qty + '</span><span class="v num">' + formatMoney(it.price*it.qty) + '</span></div>'; }).join("") +
             (sale.discountPct>0 ? '<div class="li"><span>Descuento (' + sale.discountPct + '%)</span><span class="v num">−' + formatMoney(sale.discountAmt) + '</span></div>' : '') +
             (sale.surchargePct>0 ? '<div class="li"><span>Recargo (' + sale.surchargePct + '%)</span><span class="v num">+' + formatMoney(sale.surchargeAmt) + '</span></div>' : '') +
+            (isAdmin && !voided ? '<div class="li"><span>Ganancia</span><span class="v num">' + formatMoney(saleProfit(sale)) + '</span></div>' : '') +
             (voided ? '<div class="li"><span>Anulada por ' + escapeHtml(sale.cancelledBy||"—") + '</span><span class="v">' + new Date(sale.cancelledAt||sale.ts).toLocaleString("es-AR") + '</span></div>' : '') +
             '<div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">' +
               '<button class="btn sm reprint-btn" data-id="' + sale.id + '">' + (voided ? 'Reimprimir nota de crédito' : 'Reimprimir') + '</button>' +
@@ -1685,6 +1963,14 @@ var auth = getAuth(fbApp);
     document.getElementById("stAvgToday").textContent = formatMoney(todaySales.length ? todayTotal/todaySales.length : 0);
     document.getElementById("today-count").textContent = todaySales.length;
     document.getElementById("today-total").textContent = formatMoney(todayTotal);
+    if(isAdmin){
+      var profitToday = todaySales.reduce(function(s,x){ return s + saleProfit(x); }, 0);
+      var costToday = todaySales.reduce(function(s,x){ return s + saleCost(x); }, 0);
+      var marginPctToday = todayTotal > 0 ? (profitToday/todayTotal*100) : 0;
+      var elProfit = document.getElementById("stProfitToday"); if(elProfit) elProfit.textContent = formatMoney(profitToday);
+      var elCost = document.getElementById("stCostToday"); if(elCost) elCost.textContent = formatMoney(costToday);
+      var elMargin = document.getElementById("stMarginToday"); if(elMargin) elMargin.textContent = Math.round(marginPctToday) + "%";
+    }
 
     var summaryPanel = document.getElementById("sellerSummaryPanel");
     var summaryBody = document.getElementById("sellerSummaryBody");
@@ -1704,6 +1990,194 @@ var auth = getAuth(fbApp);
       }).join("");
       summaryPanel.style.display = "";
     }
+  }
+
+  /* ---------------- clientes / fiado (admin) ---------------- */
+
+  function findCustomer(id){
+    for(var i=0;i<state.customers.length;i++) if(state.customers[i].id===id) return state.customers[i];
+    return null;
+  }
+
+  function renderCustomers(){
+    var tbody = document.getElementById("customersTbody");
+    if(!tbody) return;
+    if(state.customers.length === 0){
+      tbody.innerHTML = '<tr><td colspan="4" class="empty-hint">Todavía no cargaste clientes.</td></tr>';
+    } else {
+      tbody.innerHTML = state.customers.map(function(c){
+        var owes = c.balance > 0.001;
+        return '<tr data-id="' + c.id + '">' +
+          '<td><div style="font-weight:600;">' + escapeHtml(c.name) + '</div></td>' +
+          '<td>' + (c.phone ? escapeHtml(c.phone) : '<span class="hint">—</span>') + '</td>' +
+          '<td class="num"><span class="chip ' + (owes ? 'warn' : 'neutral') + '">' + formatMoney(c.balance) + '</span></td>' +
+          '<td style="text-align:right; white-space:nowrap;">' +
+            (owes ? '<button class="btn sm register-payment-btn" data-id="' + c.id + '">Registrar pago</button>' : '') +
+          '</td>' +
+        '</tr>';
+      }).join("");
+      tbody.querySelectorAll(".register-payment-btn").forEach(function(b){
+        b.addEventListener("click", function(){ openPaymentModal(b.dataset.id); });
+      });
+    }
+    renderFiadoCustomerOptions();
+  }
+
+  function renderFiadoCustomerOptions(){
+    var sel = document.getElementById("fiadoCustomerSelect");
+    if(!sel) return;
+    var current = sel.value;
+    sel.innerHTML = '<option value="">Elegí un cliente…</option>' + state.customers.map(function(c){
+      return '<option value="' + c.id + '">' + escapeHtml(c.name) + (c.balance>0.001 ? ' (debe ' + formatMoney(c.balance) + ')' : '') + '</option>';
+    }).join("");
+    if(current && findCustomer(current)) sel.value = current;
+  }
+
+  function openCustomerModal(){
+    document.getElementById("cfName").value = "";
+    document.getElementById("cfPhone").value = "";
+    document.getElementById("customerOverlay").classList.add("show");
+    setTimeout(function(){ document.getElementById("cfName").focus(); }, 50);
+  }
+  function closeCustomerModal(){
+    document.getElementById("customerOverlay").classList.remove("show");
+  }
+  function saveNewCustomer(){
+    var name = document.getElementById("cfName").value.trim();
+    if(!name){ toast("Ingresá el nombre del cliente", true); return; }
+    var c = {id:uid(), name:name, phone:document.getElementById("cfPhone").value.trim(), balance:0};
+    saveCustomerDoc(c);
+    closeCustomerModal();
+    toast("Cliente agregado");
+    return c;
+  }
+
+  var pendingPaymentCustomerId = null;
+  function openPaymentModal(customerId){
+    var c = findCustomer(customerId);
+    if(!c) return;
+    pendingPaymentCustomerId = customerId;
+    document.getElementById("paymentModalTitle").textContent = "Registrar pago — " + c.name;
+    document.getElementById("paymentModalBalance").textContent = "Saldo actual: " + formatMoney(c.balance);
+    document.getElementById("pfAmount").value = "";
+    document.getElementById("paymentOverlay").classList.add("show");
+    setTimeout(function(){ document.getElementById("pfAmount").focus(); }, 50);
+  }
+  function closePaymentModal(){
+    document.getElementById("paymentOverlay").classList.remove("show");
+    pendingPaymentCustomerId = null;
+  }
+  function saveCustomerPayment(){
+    var c = findCustomer(pendingPaymentCustomerId);
+    if(!c) return;
+    var amt = parseFloat(document.getElementById("pfAmount").value);
+    if(isNaN(amt) || amt <= 0){ toast("Ingresá un monto válido", true); return; }
+    var updated = {}; Object.keys(c).forEach(function(k){ updated[k]=c[k]; });
+    updated.balance = Math.max(0, c.balance - amt);
+    saveCustomerDoc(updated);
+    closePaymentModal();
+    toast("Pago registrado — nuevo saldo: " + formatMoney(updated.balance));
+  }
+
+  /* ---------------- caja (cierre / arqueo, admin) ---------------- */
+
+  function cajaPeriodStart(){
+    if(state.cashClosures.length === 0) return 0;
+    var latest = state.cashClosures.reduce(function(max,c){ return c.ts > max ? c.ts : max; }, 0);
+    return latest;
+  }
+
+  function cajaMethodBreakdown(){
+    var from = cajaPeriodStart();
+    var sales = state.sales.filter(function(s){ return s.ts > from && !s.cancelled; });
+    var byMethod = {};
+    sales.forEach(function(s){
+      var m = s.paymentMethod;
+      if(!byMethod[m]) byMethod[m] = {count:0, total:0};
+      byMethod[m].count++; byMethod[m].total += s.total;
+    });
+    return {sales:sales, byMethod:byMethod};
+  }
+
+  var cajaExpectedCashValue = 0;
+  function renderCaja(){
+    var expectedEl = document.getElementById("cajaExpectedCash");
+    if(!expectedEl) return;
+    var data = cajaMethodBreakdown();
+    var expectedCash = (data.byMethod.efectivo ? data.byMethod.efectivo.total : 0);
+    var totalSold = data.sales.reduce(function(s,x){ return s+x.total; },0);
+    cajaExpectedCashValue = expectedCash;
+    expectedEl.textContent = formatMoney(expectedCash);
+    document.getElementById("cajaSalesCount").textContent = data.sales.length;
+    document.getElementById("cajaTotalSold").textContent = formatMoney(totalSold);
+
+    var methodsOrder = ["efectivo","qr","posnet","transferencia","fiado"];
+    document.getElementById("cajaByMethodBody").innerHTML = methodsOrder.map(function(m){
+      var d = data.byMethod[m] || {count:0, total:0};
+      var meta = PAYMENT_META[m];
+      return '<div class="seller-summary-row"><span class="nm">' + meta.label + '</span><span class="cnt">' + d.count + ' venta' + (d.count===1?'':'s') + '</span><span class="tot num">' + formatMoney(d.total) + '</span></div>';
+    }).join("");
+
+    renderCajaHistory();
+    updateCajaDiffPreview();
+  }
+
+  function updateCajaDiffPreview(){
+    var box = document.getElementById("cajaDiffPreview");
+    if(!box) return;
+    var input = document.getElementById("cajaCountedInput");
+    var counted = parseFloat(input.value);
+    if(isNaN(counted)){ box.textContent = "Ingresá cuánto efectivo contaste en la caja."; return; }
+    var diff = counted - cajaExpectedCashValue;
+    if(Math.abs(diff) < 0.5){
+      box.textContent = "Cuadra perfecto con lo esperado.";
+    } else if(diff > 0){
+      box.textContent = "Sobran " + formatMoney(diff) + " respecto de lo esperado.";
+    } else {
+      box.textContent = "Faltan " + formatMoney(Math.abs(diff)) + " respecto de lo esperado.";
+    }
+  }
+
+  function closeCaja(){
+    var counted = parseFloat(document.getElementById("cajaCountedInput").value);
+    if(isNaN(counted) || counted < 0){ toast("Ingresá el efectivo contado", true); return; }
+    var data = cajaMethodBreakdown();
+    var expectedCash = (data.byMethod.efectivo ? data.byMethod.efectivo.total : 0);
+    var byMethodOut = {};
+    Object.keys(data.byMethod).forEach(function(m){ byMethodOut[m] = {count:data.byMethod[m].count, total:data.byMethod[m].total}; });
+    var closure = {
+      id: uid(), ts: Date.now(), periodFrom: cajaPeriodStart(), periodTo: Date.now(),
+      closedBy: currentIdentityName(),
+      byMethod: byMethodOut,
+      expectedCash: expectedCash, countedCash: counted, difference: counted - expectedCash
+    };
+    setDoc(closureRef(closure.id), closure).then(function(){
+      var diffMsg = Math.abs(closure.difference) < 0.5 ? "cuadrada" : (closure.difference<0 ? "faltan " + formatMoney(Math.abs(closure.difference)) : "sobran " + formatMoney(closure.difference));
+      toast("Caja cerrada — " + diffMsg);
+      document.getElementById("cajaCountedInput").value = "";
+    }).catch(function(e){ console.error(e); toast("No se pudo guardar el cierre", true); });
+  }
+
+  function renderCajaHistory(){
+    var wrap = document.getElementById("cajaHistoryList");
+    if(!wrap) return;
+    var sorted = state.cashClosures.slice().sort(function(a,b){ return b.ts - a.ts; });
+    if(sorted.length === 0){
+      wrap.innerHTML = '<div class="empty-hint">Todavía no se hizo ningún cierre de caja.</div>';
+      return;
+    }
+    wrap.innerHTML = sorted.map(function(c){
+      var when = new Date(c.ts);
+      var ok = Math.abs(c.difference) < 0.5;
+      var chipCls = ok ? "good" : (c.difference < 0 ? "danger" : "warn");
+      var diffLabel = ok ? "Cuadrada" : (c.difference < 0 ? "Faltan " + formatMoney(Math.abs(c.difference)) : "Sobran " + formatMoney(c.difference));
+      return '<div class="sale-card"><div class="sale-head" style="cursor:default;">' +
+        '<span class="sid">' + when.toLocaleDateString("es-AR") + ' ' + when.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"}) + '</span>' +
+        '<span class="sale-seller">' + escapeHtml(c.closedBy||"—") + '</span>' +
+        '<span class="chip ' + chipCls + '">' + diffLabel + '</span>' +
+        '<span class="stotal num">' + formatMoney(c.countedCash) + '</span>' +
+      '</div></div>';
+    }).join("");
   }
 
   /* ---------------- vendedores (admin, dentro de Config) ---------------- */
@@ -1798,6 +2272,24 @@ var auth = getAuth(fbApp);
     renderCatalog(); renderCart();
   }
 
+  function findProductBySku(code){
+    code = String(code||"").trim().toLowerCase();
+    if(!code) return null;
+    for(var i=0;i<state.products.length;i++){
+      var p = state.products[i];
+      if(p.sku && p.sku.trim().toLowerCase() === code) return p;
+    }
+    return null;
+  }
+
+  function scanProduct(code){
+    var p = findProductBySku(code);
+    if(!p){ toast("No se encontró ningún producto con ese código", true); return; }
+    if(p.stock <= 0){ toast("Sin stock: " + p.name, true); return; }
+    addToCart(p.id);
+    toast("Agregado: " + p.name);
+  }
+
   function changeQty(productId, delta){
     var p = findProduct(productId);
     var line = null;
@@ -1844,11 +2336,17 @@ var auth = getAuth(fbApp);
         return;
       }
     }
+    var payMethod = ui.payMethod;
+    var customerId = null, customerName = null;
+    if(payMethod === "fiado"){
+      var customer = ui.fiadoCustomerId ? findCustomer(ui.fiadoCustomerId) : null;
+      if(!customer){ toast("Elegí un cliente para la venta fiado", true); return; }
+      customerId = customer.id; customerName = customer.name;
+    }
     var t = computeTotals();
-    var itemsForTicket = cart.map(function(l){ var p = findProduct(l.productId); return {productId:p.id, name:p.name, price:p.price, qty:l.qty}; });
+    var itemsForTicket = cart.map(function(l){ var p = findProduct(l.productId); return {productId:p.id, name:p.name, price:p.price, qty:l.qty, cost:(typeof p.cost === "number" ? p.cost : 0)}; });
     var cartSnapshot = cart.map(function(l){ return {productId:l.productId, qty:l.qty}; });
     var saleId = uid();
-    var payMethod = ui.payMethod;
 
     var confirmBtn = document.getElementById("confirmSaleBtn");
     if(confirmBtn) confirmBtn.disabled = true;
@@ -1856,26 +2354,35 @@ var auth = getAuth(fbApp);
     runTransaction(db, function(tx){
       var counterRef = doc(db,"meta","counters");
       var prodRefs = cartSnapshot.map(function(l){ return productRef(l.productId); });
+      var custRef = customerId ? customerRef(customerId) : null;
       return Promise.all(prodRefs.map(function(ref){ return tx.get(ref); })).then(function(prodSnaps){
-        return tx.get(counterRef).then(function(counterSnap){
-          var nextNum = (counterSnap.exists() && typeof counterSnap.data().nextSaleNumber === "number") ? counterSnap.data().nextSaleNumber : 1001;
-          for(var i=0;i<prodSnaps.length;i++){
-            if(!prodSnaps[i].exists()) throw new Error("STOCK:" + (itemsForTicket[i] ? itemsForTicket[i].name : "producto"));
-            var curStock = prodSnaps[i].data().stock || 0;
-            if(cartSnapshot[i].qty > curStock) throw new Error("STOCK:" + prodSnaps[i].data().name);
-          }
-          prodSnaps.forEach(function(snap, i){
-            tx.update(snap.ref, {stock: snap.data().stock - cartSnapshot[i].qty});
+        return Promise.resolve(custRef ? tx.get(custRef) : null).then(function(custSnap){
+          return tx.get(counterRef).then(function(counterSnap){
+            var nextNum = (counterSnap.exists() && typeof counterSnap.data().nextSaleNumber === "number") ? counterSnap.data().nextSaleNumber : 1001;
+            for(var i=0;i<prodSnaps.length;i++){
+              if(!prodSnaps[i].exists()) throw new Error("STOCK:" + (itemsForTicket[i] ? itemsForTicket[i].name : "producto"));
+              var curStock = prodSnaps[i].data().stock || 0;
+              if(cartSnapshot[i].qty > curStock) throw new Error("STOCK:" + prodSnaps[i].data().name);
+            }
+            if(custRef && (!custSnap || !custSnap.exists())) throw new Error("CUSTOMER_GONE");
+            prodSnaps.forEach(function(snap, i){
+              tx.update(snap.ref, {stock: snap.data().stock - cartSnapshot[i].qty});
+            });
+            if(custRef){
+              var curBalance = custSnap.data().balance || 0;
+              tx.update(custRef, {balance: curBalance + t.total});
+            }
+            var sale = {
+              id: saleId, shortId: nextNum, ts: Date.now(),
+              items: itemsForTicket, subtotal:t.subtotal, discountPct:t.discountPct, discountAmt:t.discountAmt,
+              surchargePct:t.surchargePct, surchargeAmt:t.surchargeAmt, total:t.total, paymentMethod: payMethod,
+              sellerId: sellerId, sellerName: sellerName
+            };
+            if(customerId){ sale.customerId = customerId; sale.customerName = customerName; }
+            tx.set(doc(db,"sales",saleId), sale);
+            tx.set(counterRef, {nextSaleNumber: nextNum + 1});
+            return sale;
           });
-          var sale = {
-            id: saleId, shortId: nextNum, ts: Date.now(),
-            items: itemsForTicket, subtotal:t.subtotal, discountPct:t.discountPct, discountAmt:t.discountAmt,
-            surchargePct:t.surchargePct, surchargeAmt:t.surchargeAmt, total:t.total, paymentMethod: payMethod,
-            sellerId: sellerId, sellerName: sellerName
-          };
-          tx.set(doc(db,"sales",saleId), sale);
-          tx.set(counterRef, {nextSaleNumber: nextNum + 1});
-          return sale;
         });
       });
     }).then(function(sale){
@@ -1888,7 +2395,7 @@ var auth = getAuth(fbApp);
       setPayMethod("efectivo");
 
       renderCatalog(); renderCart();
-      if(session.role === "admin"){ renderProductsTable(); renderHistory(); } else { renderStockTab(); }
+      if(session.role === "admin"){ renderProductsTable(); renderHistory(); renderCustomers(); renderCaja(); } else { renderStockTab(); }
       toast("Venta #" + sale.shortId + " registrada — " + formatMoney(sale.total));
       printSale(sale);
     }).catch(function(err){
@@ -1896,6 +2403,8 @@ var auth = getAuth(fbApp);
       var msg = String((err && err.message) || err);
       if(msg.indexOf("STOCK:") === 0){
         toast("Stock insuficiente para " + msg.slice(6) + " (alguien más vendió antes que vos)", true);
+      } else if(msg.indexOf("CUSTOMER_GONE") === 0){
+        toast("Ese cliente ya no existe. Elegí otro.", true);
       } else {
         console.error(err);
         toast("No se pudo registrar la venta. Revisá tu conexión e intentá de nuevo.", true);
@@ -1929,23 +2438,30 @@ var auth = getAuth(fbApp);
         if(saleData.cancelled) throw new Error("Esa venta ya estaba anulada");
         var items = saleData.items || [];
         var prodRefs = items.map(function(it){ return productRef(it.productId); });
+        var custRef = (saleData.paymentMethod === "fiado" && saleData.customerId) ? customerRef(saleData.customerId) : null;
         return Promise.all(prodRefs.map(function(ref){ return tx.get(ref); })).then(function(prodSnaps){
-          prodSnaps.forEach(function(snap, i){
-            if(snap.exists()){
-              tx.update(snap.ref, {stock: (snap.data().stock || 0) + items[i].qty});
+          return Promise.resolve(custRef ? tx.get(custRef) : null).then(function(custSnap){
+            prodSnaps.forEach(function(snap, i){
+              if(snap.exists()){
+                tx.update(snap.ref, {stock: (snap.data().stock || 0) + items[i].qty});
+              }
+            });
+            if(custRef && custSnap && custSnap.exists()){
+              var curBalance = custSnap.data().balance || 0;
+              tx.update(custRef, {balance: Math.max(0, curBalance - saleData.total)});
             }
+            var cancelledAt = Date.now();
+            var cancelledBy = currentIdentityName();
+            tx.update(sRef, {cancelled:true, cancelledAt:cancelledAt, cancelledBy:cancelledBy});
+            var fullSale = {}; Object.keys(saleData).forEach(function(k){ fullSale[k]=saleData[k]; });
+            fullSale.id = saleId; fullSale.cancelled = true; fullSale.cancelledAt = cancelledAt; fullSale.cancelledBy = cancelledBy;
+            return fullSale;
           });
-          var cancelledAt = Date.now();
-          var cancelledBy = currentIdentityName();
-          tx.update(sRef, {cancelled:true, cancelledAt:cancelledAt, cancelledBy:cancelledBy});
-          var fullSale = {}; Object.keys(saleData).forEach(function(k){ fullSale[k]=saleData[k]; });
-          fullSale.id = saleId; fullSale.cancelled = true; fullSale.cancelledAt = cancelledAt; fullSale.cancelledBy = cancelledBy;
-          return fullSale;
         });
       });
     }).then(function(fullSale){
-      toast("Venta #" + fullSale.shortId + " anulada — stock repuesto");
-      renderHistory();
+      toast("Venta #" + fullSale.shortId + " anulada — stock repuesto" + (fullSale.paymentMethod==="fiado" ? " y saldo del cliente descontado" : ""));
+      renderHistory(); renderCustomers(); renderCaja();
       printVoidNote(fullSale);
     }).catch(function(err){
       if(btn) btn.disabled = false;
@@ -1956,8 +2472,7 @@ var auth = getAuth(fbApp);
 
   /* ---------------- balance / exportar PDF ---------------- */
 
-  function getFilteredReportSales(){
-    var range = document.getElementById("reportRange").value;
+  function computeDateRange(range, fromVal, toVal){
     var now = new Date();
     var from, to;
     if(range === "today"){
@@ -1970,15 +2485,19 @@ var auth = getAuth(fbApp);
       from = new Date(now.getFullYear(), now.getMonth(), 1, 0,0,0,0);
       to = new Date(now.getFullYear(), now.getMonth()+1, 0, 23,59,59,999);
     } else if(range === "custom"){
-      var fromVal = document.getElementById("reportFrom").value;
-      var toVal = document.getElementById("reportTo").value;
       from = fromVal ? new Date(fromVal + "T00:00:00") : new Date(0);
       to = toVal ? new Date(toVal + "T23:59:59") : new Date(8640000000000000);
     } else {
       from = new Date(0);
       to = new Date(8640000000000000);
     }
-    return state.sales.filter(function(s){ return s.ts >= from.getTime() && s.ts <= to.getTime(); }).sort(function(a,b){ return a.ts - b.ts; });
+    return {from:from, to:to};
+  }
+
+  function getFilteredReportSales(){
+    var range = document.getElementById("reportRange").value;
+    var r = computeDateRange(range, document.getElementById("reportFrom").value, document.getElementById("reportTo").value);
+    return state.sales.filter(function(s){ return s.ts >= r.from.getTime() && s.ts <= r.to.getTime(); }).sort(function(a,b){ return a.ts - b.ts; });
   }
 
   function buildReportHtml(sales){
@@ -2167,6 +2686,17 @@ var auth = getAuth(fbApp);
       var surchargeInput = document.getElementById("surchargeInput");
       if(!ui.surchargeTouched){ surchargeInput.value = methodDefaultSurcharge(method); }
     }
+    var picker = document.getElementById("fiadoPicker");
+    if(picker){
+      if(method === "fiado"){
+        picker.style.display = "";
+        renderFiadoCustomerOptions();
+        document.getElementById("fiadoCustomerSelect").value = ui.fiadoCustomerId || "";
+      } else {
+        picker.style.display = "none";
+        ui.fiadoCustomerId = null;
+      }
+    }
     renderTotals(); renderTicketPreview();
   }
 
@@ -2209,9 +2739,11 @@ var auth = getAuth(fbApp);
     document.getElementById("pfCategory").value = product ? product.category : CATEGORIES[0];
     document.getElementById("pfSku").value = product ? product.sku : "";
     document.getElementById("pfPrice").value = product ? product.price : "";
+    document.getElementById("pfCost").value = product ? (product.cost||0) : "";
     document.getElementById("pfStock").value = product ? product.stock : "";
     pfPhotoData = product ? (product.photo || "") : "";
     updatePhotoPreview();
+    updatePfMarginHint();
     document.getElementById("productOverlay").classList.add("show");
     document.getElementById("pfName").focus();
   }
@@ -2219,19 +2751,30 @@ var auth = getAuth(fbApp);
     document.getElementById("productOverlay").classList.remove("show");
     editingId = null;
   }
+  function updatePfMarginHint(){
+    var el = document.getElementById("pfMarginHint");
+    if(!el) return;
+    var price = parseFloat(document.getElementById("pfPrice").value) || 0;
+    var cost = parseFloat(document.getElementById("pfCost").value) || 0;
+    if(price <= 0){ el.textContent = ""; return; }
+    var margin = price - cost;
+    var pct = (margin / price) * 100;
+    el.textContent = "Ganancia por unidad: " + formatMoney(margin) + " (" + Math.round(pct) + "% de margen)";
+  }
   function saveProduct(){
     var name = document.getElementById("pfName").value.trim();
     if(!name){ toast("Ingresá un nombre para el producto", true); return; }
     var category = document.getElementById("pfCategory").value;
     var sku = document.getElementById("pfSku").value.trim();
     var price = parseFloat(document.getElementById("pfPrice").value) || 0;
+    var cost = parseFloat(document.getElementById("pfCost").value) || 0;
     var stock = parseInt(document.getElementById("pfStock").value,10) || 0;
     var target;
     if(editingId){
       var p = findProduct(editingId);
-      if(p){ p.name=name; p.category=category; p.sku=sku; p.price=price; p.stock=stock; p.photo=pfPhotoData; target = p; }
+      if(p){ p.name=name; p.category=category; p.sku=sku; p.price=price; p.cost=cost; p.stock=stock; p.photo=pfPhotoData; target = p; }
     } else {
-      target = {id:uid(), name:name, category:category, sku:sku, price:price, stock:stock, photo:pfPhotoData};
+      target = {id:uid(), name:name, category:category, sku:sku, price:price, cost:cost, stock:stock, photo:pfPhotoData};
       state.products.push(target);
     }
     if(target) saveProductDoc(target);
@@ -2240,11 +2783,85 @@ var auth = getAuth(fbApp);
     toast(editingId ? "Producto actualizado" : "Producto agregado");
   }
 
+  /* ---------------- aumento de precios masivo (admin) ---------------- */
+
+  function roundToStep(v, step){
+    if(!step) return Math.round(v);
+    return Math.round(v/step) * step;
+  }
+  function massPriceTargets(){
+    var cat = document.getElementById("mpCategory").value;
+    return state.products.filter(function(p){ return cat === "Todos" || p.category === cat; });
+  }
+  function openMassPriceModal(){
+    var sel = document.getElementById("mpCategory");
+    sel.innerHTML = '<option value="Todos">Todos los productos</option>' + CATEGORIES.map(function(c){ return '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>'; }).join("");
+    document.getElementById("mpPercent").value = "";
+    document.getElementById("mpRound").value = "0";
+    document.getElementById("massPriceOverlay").classList.add("show");
+    updateMassPricePreview();
+    document.getElementById("mpPercent").focus();
+  }
+  function closeMassPriceModal(){
+    document.getElementById("massPriceOverlay").classList.remove("show");
+  }
+  function updateMassPricePreview(){
+    var pct = parseFloat(document.getElementById("mpPercent").value);
+    var step = parseInt(document.getElementById("mpRound").value,10) || 0;
+    var targets = massPriceTargets();
+    var summary = document.getElementById("mpSummary");
+    var list = document.getElementById("mpPreviewList");
+    var applyBtn = document.getElementById("applyMassPriceBtn");
+    if(targets.length === 0){
+      summary.textContent = "No hay productos en esa categoría.";
+      list.innerHTML = "";
+      applyBtn.disabled = true;
+      return;
+    }
+    if(isNaN(pct) || pct === 0){
+      summary.textContent = "Ingresá un porcentaje para ver la vista previa (" + targets.length + " producto" + (targets.length===1?"":"s") + " en esta selección).";
+      list.innerHTML = "";
+      applyBtn.disabled = true;
+      return;
+    }
+    applyBtn.disabled = false;
+    summary.textContent = "Se va a aplicar a " + targets.length + " producto" + (targets.length===1?"":"s") + " (" + (pct>0?"+":"") + pct + "%).";
+    var sample = targets.slice().sort(function(a,b){ return a.name.localeCompare(b.name,"es"); }).slice(0,4);
+    list.innerHTML = sample.map(function(p){
+      var np = Math.max(0, roundToStep(p.price * (1 + pct/100), step));
+      return '<div class="mp-preview-item"><span>' + escapeHtml(p.name) + '</span><span class="num">' + formatMoney(p.price) + ' → ' + formatMoney(np) + '</span></div>';
+    }).join("") + (targets.length > sample.length ? '<div class="hint" style="margin-top:4px;">y ' + (targets.length - sample.length) + ' más…</div>' : '');
+  }
+  function applyMassPriceIncrease(){
+    var pct = parseFloat(document.getElementById("mpPercent").value);
+    var step = parseInt(document.getElementById("mpRound").value,10) || 0;
+    var targets = massPriceTargets();
+    if(isNaN(pct) || pct === 0 || targets.length === 0) return;
+    targets.forEach(function(p){
+      p.price = Math.max(0, roundToStep(p.price * (1 + pct/100), step));
+      saveProductDoc(p);
+    });
+    renderProductsTable(); renderCatalog(); renderCart();
+    closeMassPriceModal();
+    toast("Precios actualizados en " + targets.length + " producto" + (targets.length===1?"":"s"));
+  }
+
   /* ---------------- wiring ---------------- */
 
   function init(){
     document.getElementById("searchInput").addEventListener("input", function(e){
       ui.search = e.target.value; renderCatalog();
+    });
+    document.getElementById("searchInput").addEventListener("keydown", function(e){
+      if(e.key !== "Enter") return;
+      var code = e.target.value;
+      if(!code.trim()) return;
+      e.preventDefault();
+      e.stopPropagation();
+      scanProduct(code);
+      e.target.value = "";
+      ui.search = "";
+      renderCatalog();
     });
 
     document.querySelectorAll(".pay-method").forEach(function(el){
@@ -2314,11 +2931,64 @@ var auth = getAuth(fbApp);
     });
     document.getElementById("exportPdfBtn").addEventListener("click", exportHistoryPdf);
 
+    document.getElementById("historyRangeSelect").addEventListener("change", renderHistory);
+    document.getElementById("historyFrom").addEventListener("change", renderHistory);
+    document.getElementById("historyTo").addEventListener("change", renderHistory);
+    document.getElementById("sellerFilterSelect").addEventListener("change", function(){
+      ui.sellerFilter = this.value; renderHistory();
+    });
+    document.getElementById("paymentFilterSelect").addEventListener("change", function(){
+      ui.paymentFilter = this.value; renderHistory();
+    });
+    document.getElementById("voidedFilterSelect").addEventListener("change", function(){
+      ui.onlyVoided = (this.value === "anuladas"); renderHistory();
+    });
+
     document.getElementById("newProductBtn").addEventListener("click", function(){ openProductModal(null); });
     document.getElementById("closeProductModal").addEventListener("click", closeProductModal);
     document.getElementById("cancelProductBtn").addEventListener("click", closeProductModal);
     document.getElementById("saveProductBtn").addEventListener("click", saveProduct);
     document.getElementById("productOverlay").addEventListener("click", function(e){ if(e.target.id === "productOverlay") closeProductModal(); });
+    document.getElementById("pfPrice").addEventListener("input", updatePfMarginHint);
+    document.getElementById("pfCost").addEventListener("input", updatePfMarginHint);
+
+    document.getElementById("massPriceBtn").addEventListener("click", openMassPriceModal);
+    document.getElementById("closeMassPriceModal").addEventListener("click", closeMassPriceModal);
+    document.getElementById("cancelMassPriceBtn").addEventListener("click", closeMassPriceModal);
+    document.getElementById("massPriceOverlay").addEventListener("click", function(e){ if(e.target.id === "massPriceOverlay") closeMassPriceModal(); });
+    document.getElementById("mpCategory").addEventListener("change", updateMassPricePreview);
+    document.getElementById("mpPercent").addEventListener("input", updateMassPricePreview);
+    document.getElementById("mpRound").addEventListener("change", updateMassPricePreview);
+    document.getElementById("applyMassPriceBtn").addEventListener("click", applyMassPriceIncrease);
+
+    document.getElementById("fiadoCustomerSelect").addEventListener("change", function(e){
+      ui.fiadoCustomerId = e.target.value || null;
+    });
+    document.getElementById("fiadoNewCustomerBtn").addEventListener("click", openCustomerModal);
+
+    document.getElementById("newCustomerBtn").addEventListener("click", openCustomerModal);
+    document.getElementById("closeCustomerModal").addEventListener("click", closeCustomerModal);
+    document.getElementById("cancelCustomerBtn").addEventListener("click", closeCustomerModal);
+    document.getElementById("saveCustomerBtn").addEventListener("click", function(){
+      var c = saveNewCustomer();
+      if(c && ui.payMethod === "fiado"){
+        ui.fiadoCustomerId = c.id;
+        setTimeout(function(){
+          renderFiadoCustomerOptions();
+          var sel = document.getElementById("fiadoCustomerSelect");
+          if(sel) sel.value = c.id;
+        }, 30);
+      }
+    });
+    document.getElementById("customerOverlay").addEventListener("click", function(e){ if(e.target.id === "customerOverlay") closeCustomerModal(); });
+
+    document.getElementById("closePaymentModal").addEventListener("click", closePaymentModal);
+    document.getElementById("cancelPaymentBtn").addEventListener("click", closePaymentModal);
+    document.getElementById("savePaymentBtn").addEventListener("click", saveCustomerPayment);
+    document.getElementById("paymentOverlay").addEventListener("click", function(e){ if(e.target.id === "paymentOverlay") closePaymentModal(); });
+
+    document.getElementById("cajaCountedInput").addEventListener("input", updateCajaDiffPreview);
+    document.getElementById("closeCajaBtn").addEventListener("click", closeCaja);
 
     document.getElementById("choosePhotoBtn").addEventListener("click", function(){ document.getElementById("photoFileInput").click(); });
     document.getElementById("photoFileInput").addEventListener("change", function(e){
