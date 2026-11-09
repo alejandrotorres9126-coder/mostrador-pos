@@ -86,6 +86,7 @@
   }
   .seller-tile:hover{border-color:var(--accent);}
   .seller-tile .seller-avatar{width:40px; height:40px; font-size:15px;}
+  .seller-tile .tile-role{font-size:9.5px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:.04em; margin-top:-4px;}
   .login-admin-link{
     border:none; background:transparent; color:var(--accent); font-size:12.5px; font-weight:600; cursor:pointer; text-align:center; padding:6px;
   }
@@ -308,6 +309,8 @@
   .ticket .t-void{text-align:center; font-weight:700; font-size:16px; color:#000; border:2px solid #000; border-radius:4px; padding:4px 0; margin:10px 0; letter-spacing:.04em;}
   .ticket .t-watermark{display:flex; justify-content:center; margin-top:14px; opacity:.2;}
   .ticket .t-watermark svg{display:block;}
+  .ticket .t-barcode-wrap{display:flex; flex-direction:column; align-items:center; margin-top:12px;}
+  .ticket .t-barcode-code{font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:2px; margin-top:3px; color:#000;}
 
   /* ---------- productos / stock tab ---------- */
   .table-wrap{overflow-x:auto;}
@@ -384,12 +387,13 @@
   .section-title{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); margin:20px 0 8px;}
 
   .seller-manage{max-width:560px;}
-  .seller-add-row{display:flex; gap:8px; margin-bottom:10px;}
+  .seller-add-row{display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;}
   .seller-add-row input{flex:1; border:1px solid var(--border); background:var(--surface); border-radius:8px; padding:8px 10px; font-size:13px;}
-  .seller-row{
+  .seller-add-row select{border:1px solid var(--border); background:var(--surface); border-radius:8px; padding:8px 10px; font-size:12.5px; color:var(--ink);}
+  .seller-row, .caja-row{
     display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--border-soft); border-radius:8px; margin-bottom:7px; background:var(--surface-2);
   }
-  .seller-row .seller-avatar{width:26px; height:26px;}
+  .seller-row .seller-avatar, .caja-row .seller-avatar{width:26px; height:26px;}
   .seller-name-input{
     flex:1; min-width:70px; border:1px solid transparent; background:transparent; font-weight:600; font-size:13px; color:var(--ink);
     border-radius:6px; padding:5px 7px;
@@ -398,6 +402,14 @@
   .seller-pin-input{
     width:56px; text-align:center; font-family:'IBM Plex Mono'; border:1px solid var(--border); border-radius:6px; padding:6px 4px; font-size:12.5px; background:var(--surface); letter-spacing:1px;
   }
+  .seller-role-select{border:1px solid var(--border); border-radius:6px; padding:5px 6px; font-size:11.5px; background:var(--surface); color:var(--ink-soft);}
+  .seller-caja-select{border:1px solid var(--border); border-radius:6px; padding:5px 6px; font-size:11.5px; background:var(--surface); color:var(--ink-soft);}
+  .caja-name-input{
+    flex:1; min-width:70px; border:1px solid transparent; background:transparent; font-weight:600; font-size:13px; color:var(--ink);
+    border-radius:6px; padding:5px 7px;
+  }
+  .caja-name-input:hover, .caja-name-input:focus{border-color:var(--border); background:var(--surface);}
+  #adminCajaSelect{border:1px solid var(--border); background:var(--surface); border-radius:8px; padding:6px 10px; font-size:12.5px; color:var(--ink); font-weight:600;}
 
   /* ---------- shared avatar ---------- */
   .seller-avatar{
@@ -500,10 +512,12 @@
       </div>
     </div>
     <nav class="nav" id="mainNav"></nav>
+    <select id="adminCajaSelect" class="admin-only"></select>
     <div class="identity-badge">
       <span class="seller-avatar" id="identityAvatar">?</span>
       <span id="identityName">—</span>
       <span class="chip neutral" id="identityRole"></span>
+      <span class="chip neutral" id="identityCajaChip" style="display:none;"></span>
     </div>
     <button class="btn ghost sm" id="logoutBtn" type="button">Salir</button>
     <div class="today-stat">Hoy: <b id="today-count">0</b>&nbsp;ventas · <b id="today-total" class="num">$0,00</b></div>
@@ -575,6 +589,25 @@
             </div>
             <button class="btn primary" id="confirmSaleBtn" disabled>Confirmar venta e imprimir</button>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DESPACHAR (despachador) -->
+    <section id="tab-despachar" class="tab-panel">
+      <div class="panel" style="margin-top:16px;">
+        <div class="panel-head">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <h2>Despachar</h2>
+          </div>
+        </div>
+        <div style="padding:16px 14px 18px;">
+          <p class="hint" style="margin-bottom:10px;">Escaneá el código de barras del ticket (o escribilo y apretá Enter) para confirmar la entrega.</p>
+          <div class="search-box" style="max-width:420px;">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="14" height="12" rx="1.5"/><path d="M6 4v12M9 4v12M14 4v12" stroke-linecap="round"/></svg>
+            <input type="text" id="dispatchScanInput" placeholder="Escaneá o escribí el código del ticket..." autocomplete="off">
+          </div>
+          <div id="dispatchRecentList" style="margin-top:18px; max-width:560px;"></div>
         </div>
       </div>
     </section>
@@ -697,6 +730,10 @@
               <input type="date" id="historyTo">
             </div>
             <div class="field admin-only">
+              <label for="cajaFilterSelect">Caja</label>
+              <select id="cajaFilterSelect"></select>
+            </div>
+            <div class="field admin-only">
               <label for="sellerFilterSelect">Vendedor</label>
               <select id="sellerFilterSelect"></select>
             </div>
@@ -801,22 +838,45 @@
             </div>
           </div>
 
-          <div class="section-title">Vendedores</div>
-          <p class="hint" style="margin-top:-4px; margin-bottom:10px; max-width:520px;">Cada vendedor entra con su nombre + PIN de 4 dígitos. No pueden cambiarse de usuario sin cerrar sesión, así cada venta queda firmada correctamente.</p>
+          <div class="section-title">Cajas</div>
+          <p class="hint" style="margin-top:-4px; margin-bottom:10px; max-width:520px;">Cada caja tiene su propio catálogo de productos, su propio stock y su propio cierre de efectivo. Los vendedores y despachadores se asignan a una caja fija.</p>
           <div class="seller-manage">
             <div class="seller-add-row">
-              <input type="text" id="newSellerInput" placeholder="Nombre del vendedor">
+              <input type="text" id="newCajaInput" placeholder="Nombre de la caja (ej: Caja 1)">
+              <button class="btn primary sm" id="addCajaBtn" type="button">Agregar</button>
+            </div>
+            <div id="cajasManageList"></div>
+          </div>
+
+          <div class="section-title">Vendedores y despachadores</div>
+          <p class="hint" style="margin-top:-4px; margin-bottom:10px; max-width:520px;">Cada usuario entra con su nombre + PIN de 4 dígitos, pertenece a una sola caja y vende/despacha únicamente ahí. El despachador es quien escanea el ticket y autoriza la entrega. No pueden cambiarse de usuario sin cerrar sesión, así cada venta y cada despacho queda firmado correctamente.</p>
+          <div class="seller-manage">
+            <div class="seller-add-row">
+              <input type="text" id="newSellerInput" placeholder="Nombre">
+              <select id="newSellerCaja"></select>
+              <select id="newSellerRole">
+                <option value="seller">Vendedor</option>
+                <option value="dispatcher">Despachador</option>
+              </select>
               <button class="btn primary sm" id="addSellerBtn" type="button">Agregar</button>
             </div>
             <div id="sellersManageList"></div>
           </div>
 
           <div class="section-title">Seguridad</div>
+          <p class="hint" style="margin-top:-4px; margin-bottom:10px; max-width:520px;">Para cambiar la contraseña de administrador, ingresá la actual y la nueva (mínimo 6 caracteres).</p>
           <div class="config-grid">
             <div class="field">
-              <label for="cfgAdminPassword">Contraseña de administrador</label>
-              <input type="text" id="cfgAdminPassword" maxlength="30">
+              <label for="cfgCurrentPassword">Contraseña actual</label>
+              <input type="password" id="cfgCurrentPassword" maxlength="60" autocomplete="off">
             </div>
+            <div class="field">
+              <label for="cfgNewPassword">Contraseña nueva</label>
+              <input type="password" id="cfgNewPassword" maxlength="60" autocomplete="off" placeholder="mínimo 6 caracteres">
+            </div>
+          </div>
+          <div style="margin-top:10px;">
+            <button class="btn sm" id="changeAdminPasswordBtn" type="button">Actualizar contraseña</button>
           </div>
 
           <div class="section-title">Datos</div>
@@ -931,6 +991,17 @@
   </div>
 </div>
 
+<div class="overlay" id="dispatchOverlay">
+  <div class="modal confirm-sale-modal">
+    <div class="modal-head">
+      <h3 id="dispatchModalTitle">Confirmar despacho</h3>
+      <button class="btn icon ghost" id="closeDispatchModal">✕</button>
+    </div>
+    <div class="modal-body" id="dispatchModalBody"></div>
+    <div class="modal-foot" id="dispatchModalFoot"></div>
+  </div>
+</div>
+
 <div class="overlay" id="customerOverlay">
   <div class="modal">
     <div class="modal-head">
@@ -975,7 +1046,7 @@ import {
   getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc,
   onSnapshot, writeBatch, runTransaction
 } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+import { getAuth, signInAnonymously, onAuthStateChanged, signInWithEmailAndPassword, signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
 
 var firebaseConfig = {
   apiKey: "AIzaSyB0WTjMFd52bZSEPZhMY-D38ZEkaY7IWNw",
@@ -988,11 +1059,13 @@ var firebaseConfig = {
 var fbApp = initializeApp(firebaseConfig);
 var db = getFirestore(fbApp);
 var auth = getAuth(fbApp);
+var ADMIN_EMAIL = "admin@" + firebaseConfig.projectId + ".local";
 
 (function(){
   "use strict";
 
   var CATEGORIES = ["Bebidas","Almacén","Golosinas","Limpieza","Otros"];
+  var DEFAULT_CAJA_ID = "caja1";
 
   var PAYMENT_META = {
     efectivo:{label:"Efectivo", chip:"good"},
@@ -1016,18 +1089,65 @@ var auth = getAuth(fbApp);
 
   function uid(){ return Math.random().toString(36).slice(2,9); }
 
+  /* ---------------- codigo de barras (Code128 Subset B) ---------------- */
+  var CODE128_BARS = [11011001100,11001101100,11001100110,10010011000,10010001100,10001001100,10011001000,10011000100,10001100100,11001001000,11001000100,11000100100,10110011100,10011011100,10011001110,10111001100,10011101100,10011100110,11001110010,11001011100,11001001110,11011100100,11001110100,11101101110,11101001100,11100101100,11100100110,11101100100,11100110100,11100110010,11011011000,11011000110,11000110110,10100011000,10001011000,10001000110,10110001000,10001101000,10001100010,11010001000,11000101000,11000100010,10110111000,10110001110,10001101110,10111011000,10111000110,10001110110,11101110110,11010001110,11000101110,11011101000,11011100010,11011101110,11101011000,11101000110,11100010110,11101101000,11101100010,11100011010,11101111010,11001000010,11110001010,10100110000,10100001100,10010110000,10010000110,10000101100,10000100110,10110010000,10110000100,10011010000,10011000010,10000110100,10000110010,11000010010,11001010000,11110111010,11000010100,10001111010,10100111100,10010111100,10010011110,10111100100,10011110100,10011110010,11110100100,11110010100,11110010010,11011011110,11011110110,11110110110,10101111000,10100011110,10001011110,10111101000,10111100010,11110101000,11110100010,10111011110,10111101110,11101011110,11110101110,11010000100,11010010000,11010011100,1100011101011];
+  function code128bBits(str){
+    var values = [];
+    for (var i = 0; i < str.length; i++){
+      var code = str.charCodeAt(i);
+      if (code < 32 || code > 127) return null;
+      values.push(code - 32);
+    }
+    var START_B = 104, STOP = 106, MODULO = 103;
+    var checksum = START_B;
+    for (var j = 0; j < values.length; j++){ checksum += values[j] * (j + 1); }
+    checksum = checksum % MODULO;
+    var symbols = [START_B].concat(values, [checksum, STOP]);
+    var bits = "";
+    for (var k = 0; k < symbols.length; k++){ bits += String(CODE128_BARS[symbols[k]]); }
+    return bits;
+  }
+  function barcodeSvg(code, height){
+    var bits = code128bBits(String(code));
+    if(!bits) return "";
+    var h = height || 48;
+    var n = bits.length;
+    var rects = "";
+    for (var i = 0; i < n; i++){
+      if(bits.charAt(i) === "1"){ rects += '<rect x="' + i + '" y="0" width="1" height="' + h + '"/>'; }
+    }
+    return '<svg class="t-barcode-svg" viewBox="0 0 ' + n + ' ' + h + '" preserveAspectRatio="none" style="width:100%; height:' + h + 'px; display:block; fill:#000;">' + rects + '</svg>';
+  }
+
   function defaultProducts(){
     return [
-      {id:uid(), name:"Cerveza Quilmes lata 473ml", category:"Bebidas", price:1500, cost:950, stock:1000, sku:"7790012345", photo:""},
-      {id:uid(), name:"Coca-Cola 500ml", category:"Bebidas", price:1800, cost:1100, stock:48, sku:"", photo:""},
-      {id:uid(), name:"Agua mineral sin gas 500ml", category:"Bebidas", price:1000, cost:600, stock:60, sku:"", photo:""},
-      {id:uid(), name:"Papas fritas Lays 120g", category:"Golosinas", price:2200, cost:1400, stock:25, sku:"", photo:""},
-      {id:uid(), name:"Alfajor Jorgito triple", category:"Golosinas", price:900, cost:520, stock:8, sku:"", photo:""},
-      {id:uid(), name:"Yerba mate 1kg", category:"Almacén", price:5200, cost:3800, stock:15, sku:"", photo:""},
-      {id:uid(), name:"Pan lactal", category:"Almacén", price:2600, cost:1900, stock:0, sku:"", photo:""},
-      {id:uid(), name:"Detergente 750ml", category:"Limpieza", price:3100, cost:2200, stock:20, sku:"", photo:""},
-      {id:uid(), name:"Cigarrillos (paquete)", category:"Otros", price:4200, cost:3950, stock:30, sku:"", photo:""}
+      {id:uid(), name:"Cerveza Quilmes lata 473ml", category:"Bebidas", price:1500, cost:950, stock:1000, sku:"7790012345", photo:"", cajaId:DEFAULT_CAJA_ID},
+      {id:uid(), name:"Coca-Cola 500ml", category:"Bebidas", price:1800, cost:1100, stock:48, sku:"", photo:"", cajaId:DEFAULT_CAJA_ID},
+      {id:uid(), name:"Agua mineral sin gas 500ml", category:"Bebidas", price:1000, cost:600, stock:60, sku:"", photo:"", cajaId:DEFAULT_CAJA_ID},
+      {id:uid(), name:"Papas fritas Lays 120g", category:"Golosinas", price:2200, cost:1400, stock:25, sku:"", photo:"", cajaId:DEFAULT_CAJA_ID},
+      {id:uid(), name:"Alfajor Jorgito triple", category:"Golosinas", price:900, cost:520, stock:8, sku:"", photo:"", cajaId:DEFAULT_CAJA_ID},
+      {id:uid(), name:"Yerba mate 1kg", category:"Almacén", price:5200, cost:3800, stock:15, sku:"", photo:"", cajaId:DEFAULT_CAJA_ID},
+      {id:uid(), name:"Pan lactal", category:"Almacén", price:2600, cost:1900, stock:0, sku:"", photo:"", cajaId:DEFAULT_CAJA_ID},
+      {id:uid(), name:"Detergente 750ml", category:"Limpieza", price:3100, cost:2200, stock:20, sku:"", photo:"", cajaId:DEFAULT_CAJA_ID},
+      {id:uid(), name:"Cigarrillos (paquete)", category:"Otros", price:4200, cost:3950, stock:30, sku:"", photo:"", cajaId:DEFAULT_CAJA_ID}
     ];
+  }
+
+  function findCaja(id){
+    for(var i=0;i<state.cajas.length;i++) if(state.cajas[i].id===id) return state.cajas[i];
+    return null;
+  }
+  function cajaName(id){
+    var c = findCaja(id);
+    return c ? c.name : "—";
+  }
+  function activeCajas(){
+    return state.cajas.filter(function(c){ return c.active; });
+  }
+  function currentCajaId(){
+    if(session.role === "admin") return adminActiveCajaId;
+    var s = findSeller(session.sellerId);
+    return s ? s.cajaId : null;
   }
 
   function marginInfo(p){
@@ -1051,14 +1171,20 @@ var auth = getAuth(fbApp);
 
   function defaultSellers(){
     return [
-      {id:uid(), name:"Ana Gómez", active:true, pin:"1111"},
-      {id:uid(), name:"Carlos Ruiz", active:true, pin:"2222"},
-      {id:uid(), name:"Mariana Díaz", active:true, pin:"3333"}
+      {id:uid(), name:"Ana Gómez", active:true, pin:"1111", role:"seller", cajaId:DEFAULT_CAJA_ID},
+      {id:uid(), name:"Carlos Ruiz", active:true, pin:"2222", role:"seller", cajaId:DEFAULT_CAJA_ID},
+      {id:uid(), name:"Mariana Díaz", active:true, pin:"3333", role:"seller", cajaId:DEFAULT_CAJA_ID}
+    ];
+  }
+
+  function defaultCajas(){
+    return [
+      {id:DEFAULT_CAJA_ID, name:"Caja 1", active:true}
     ];
   }
 
   function defaultSettings(){
-    return {businessName:"Kiosco San Martín", address:"Av. San Martín 1450 · CABA", surchargeQR:0, surchargePosnet:15, lowStock:10, adminPassword:"1234"};
+    return {businessName:"Kiosco San Martín", address:"Av. San Martín 1450 · CABA", surchargeQR:0, surchargePosnet:15, lowStock:10};
   }
 
   function defaultCustomers(){
@@ -1068,11 +1194,11 @@ var auth = getAuth(fbApp);
     ];
   }
 
-  var state = {products:[], sales:[], sellers:[], customers:[], cashClosures:[], settings:defaultSettings()};
+  var state = {products:[], sales:[], sellers:[], customers:[], cashClosures:[], cajas:[], settings:defaultSettings()};
 
   /* ---------------- Firebase: conexión en la nube (tiempo real, multi-dispositivo) ---------------- */
 
-  var dataReady = {products:false, sellers:false, sales:false, settings:false, customers:false, cashClosures:false};
+  var dataReady = {products:false, sellers:false, sales:false, settings:false, customers:false, cashClosures:false, cajas:false};
   var domReady = false;
   var appStarted = false;
 
@@ -1082,6 +1208,7 @@ var auth = getAuth(fbApp);
   function saleRef(id){ return doc(db,"sales",id); }
   function customerRef(id){ return doc(db,"customers",id); }
   function closureRef(id){ return doc(db,"cashClosures",id); }
+  function cajaRef(id){ return doc(db,"cajas",id); }
 
   function saveProductDoc(p){
     setDoc(productRef(p.id), p).catch(function(e){ console.error(e); toast("No se pudo guardar en la nube", true); });
@@ -1091,20 +1218,26 @@ var auth = getAuth(fbApp);
   }
   function saveSellerDoc(s){
     setDoc(sellerRef(s.id), s).catch(function(e){ console.error(e); toast("No se pudo guardar en la nube", true); });
+    writeAuditLog("seller_saved", {sellerId:s.id, name:s.name});
   }
   function deleteSellerDoc(id){
     deleteDoc(sellerRef(id)).catch(function(e){ console.error(e); toast("No se pudo eliminar en la nube", true); });
+    writeAuditLog("seller_deleted", {sellerId:id});
   }
   function saveSettingsDoc(){
     setDoc(settingsRef(), state.settings).catch(function(e){ console.error(e); toast("No se pudo guardar en la nube", true); });
+    writeAuditLog("settings_saved", {});
   }
   function saveCustomerDoc(c){
     setDoc(customerRef(c.id), c).catch(function(e){ console.error(e); toast("No se pudo guardar en la nube", true); });
   }
+  function saveCajaDoc(c){
+    setDoc(cajaRef(c.id), c).catch(function(e){ console.error(e); toast("No se pudo guardar en la nube", true); });
+  }
 
   function tryStart(){
     if(appStarted) return;
-    if(domReady && dataReady.products && dataReady.sellers && dataReady.sales && dataReady.settings && dataReady.customers && dataReady.cashClosures){
+    if(domReady && dataReady.products && dataReady.sellers && dataReady.sales && dataReady.settings && dataReady.customers && dataReady.cashClosures && dataReady.cajas){
       appStarted = true;
       init();
     }
@@ -1112,8 +1245,9 @@ var auth = getAuth(fbApp);
 
   function renderFromRemote(){
     if(session.role){
+      if(session.role === "admin") renderAdminCajaSelect();
       renderCatChips(); renderCatalog(); renderCart(); renderTotals(); renderTicketPreview();
-      if(session.role === "seller"){ renderStockTab(); }
+      if(session.role === "seller" || session.role === "dispatcher"){ renderStockTab(); }
       if(currentTab === "historial"){ renderHistory(); }
       if(currentTab === "clientes"){ renderCustomers(); }
       if(currentTab === "caja"){ renderCaja(); }
@@ -1125,13 +1259,19 @@ var auth = getAuth(fbApp);
 
   function attachListeners(){
     onSnapshot(collection(db,"products"), function(snap){
-      state.products = snap.docs.map(function(d){ var x = d.data(); x.id = d.id; if(typeof x.photo !== "string") x.photo = ""; return x; });
+      state.products = snap.docs.map(function(d){ var x = d.data(); x.id = d.id; if(typeof x.photo !== "string") x.photo = ""; if(!x.cajaId) x.cajaId = DEFAULT_CAJA_ID; return x; });
       dataReady.products = true; tryStart(); if(appStarted) renderFromRemote();
     }, function(e){ console.error(e); toast("Se perdió la conexión con la base de datos", true); });
 
     onSnapshot(collection(db,"sellers"), function(snap){
-      state.sellers = snap.docs.map(function(d){ var x = d.data(); x.id = d.id; if(typeof x.active !== "boolean") x.active = true; return x; });
+      state.sellers = snap.docs.map(function(d){ var x = d.data(); x.id = d.id; if(typeof x.active !== "boolean") x.active = true; if(x.role !== "dispatcher") x.role = "seller"; if(!x.cajaId) x.cajaId = DEFAULT_CAJA_ID; return x; });
       dataReady.sellers = true; tryStart(); if(appStarted) renderFromRemote();
+    }, function(e){ console.error(e); });
+
+    onSnapshot(collection(db,"cajas"), function(snap){
+      state.cajas = snap.docs.map(function(d){ var x = d.data(); x.id = d.id; if(typeof x.active !== "boolean") x.active = true; return x; }).sort(function(a,b){ return a.name.localeCompare(b.name, "es"); });
+      dataReady.cajas = true; tryStart();
+      if(appStarted){ renderFromRemote(); if(currentTab === "config") renderConfig(); }
     }, function(e){ console.error(e); });
 
     onSnapshot(collection(db,"sales"), function(snap){
@@ -1141,6 +1281,7 @@ var auth = getAuth(fbApp);
         if(!PAYMENT_META[x.paymentMethod]) x.paymentMethod = "efectivo";
         if(!x.sellerName) x.sellerName = "—";
         if(typeof x.cancelled !== "boolean") x.cancelled = false;
+        if(!x.cajaId) x.cajaId = DEFAULT_CAJA_ID;
         return x;
       }).sort(function(a,b){ return a.ts - b.ts; });
       dataReady.sales = true; tryStart(); if(appStarted) renderFromRemote();
@@ -1164,24 +1305,31 @@ var auth = getAuth(fbApp);
     }, function(e){ console.error(e); });
   }
 
+  var listenersAttached = false;
   function bootstrapData(){
     Promise.all([
       getDocs(collection(db,"products")),
       getDocs(collection(db,"sellers")),
-      getDoc(settingsRef())
+      getDoc(settingsRef()),
+      getDocs(collection(db,"cajas"))
     ]).then(function(results){
-      var prodSnap = results[0], sellSnap = results[1], setSnap = results[2];
+      var prodSnap = results[0], sellSnap = results[1], setSnap = results[2], cajaSnap = results[3];
       if(prodSnap.empty && sellSnap.empty && !setSnap.exists()){
         var batch = writeBatch(db);
+        defaultCajas().forEach(function(c){ batch.set(cajaRef(c.id), c); });
         defaultProducts().forEach(function(p){ batch.set(productRef(p.id), p); });
         defaultSellers().forEach(function(s){ batch.set(sellerRef(s.id), s); });
         defaultCustomers().forEach(function(c){ batch.set(customerRef(c.id), c); });
         batch.set(settingsRef(), defaultSettings());
         batch.set(doc(db,"meta","counters"), {nextSaleNumber:1001});
         return batch.commit();
+      } else if(cajaSnap.empty){
+        // Negocio ya existente de antes de esta versión: se crea la caja por defecto
+        // para no perder los productos/vendedores que ya tenía cargados.
+        return setDoc(cajaRef(DEFAULT_CAJA_ID), {id:DEFAULT_CAJA_ID, name:"Caja 1", active:true});
       }
     }).catch(function(e){ console.error("bootstrap error", e); }).then(function(){
-      attachListeners();
+      if(!listenersAttached){ listenersAttached = true; attachListeners(); }
     });
   }
 
@@ -1191,7 +1339,8 @@ var auth = getAuth(fbApp);
       .concat(state.sellers.map(function(s){ return sellerRef(s.id); }))
       .concat(state.customers.map(function(c){ return customerRef(c.id); }))
       .concat(state.cashClosures.map(function(c){ return closureRef(c.id); }))
-      .concat(state.sales.map(function(s){ return doc(db,"sales",s.id); }));
+      .concat(state.sales.map(function(s){ return doc(db,"sales",s.id); }))
+      .concat(state.cajas.map(function(c){ return cajaRef(c.id); }));
     var chunks = [];
     for(var i=0;i<deletions.length;i+=400){ chunks.push(deletions.slice(i,i+400)); }
     var chain = Promise.resolve();
@@ -1204,6 +1353,7 @@ var auth = getAuth(fbApp);
     });
     return chain.then(function(){
       var b2 = writeBatch(db);
+      defaultCajas().forEach(function(c){ b2.set(cajaRef(c.id), c); });
       defaultProducts().forEach(function(p){ b2.set(productRef(p.id), p); });
       defaultSellers().forEach(function(s){ b2.set(sellerRef(s.id), s); });
       defaultCustomers().forEach(function(c){ b2.set(customerRef(c.id), c); });
@@ -1230,13 +1380,15 @@ var auth = getAuth(fbApp);
   var pendingSellerDelete = null;
   var pendingReset = false;
   var pendingCancelSale = null;
+  var dispatchModalState = null;
+  var adminActiveCajaId = null;
 
   var ui = {
     search:"", category:"Todos", payMethod:"efectivo",
     discountTouched:false, surchargeTouched:false, ticketWidth:80,
     openSaleId:null, sellerFilter:"Todos", stockSearch:"", stockCategory:"Todos",
     fiadoCustomerId:null,
-    paymentFilter:"Todos", historyRange:"all", onlyVoided:false
+    paymentFilter:"Todos", historyRange:"all", onlyVoided:false, cajaFilterHist:"Todos"
   };
 
   function formatMoney(n){
@@ -1312,7 +1464,11 @@ var auth = getAuth(fbApp);
       return;
     }
     wrap.innerHTML = actives.map(function(s){
-      return '<button type="button" class="seller-tile" data-id="' + s.id + '"><span class="seller-avatar">' + escapeHtml(initials(s.name)||"?") + '</span><span>' + escapeHtml(s.name) + '</span></button>';
+      var tagParts = [];
+      if(s.role === "dispatcher") tagParts.push("Despachador");
+      if(state.cajas.length > 1){ var c = findCaja(s.cajaId); if(c) tagParts.push(c.name); }
+      var roleTag = tagParts.length ? '<span class="tile-role">' + escapeHtml(tagParts.join(" · ")) + '</span>' : '';
+      return '<button type="button" class="seller-tile" data-id="' + s.id + '"><span class="seller-avatar">' + escapeHtml(initials(s.name)||"?") + '</span><span>' + escapeHtml(s.name) + '</span>' + roleTag + '</button>';
     }).join("");
     wrap.querySelectorAll(".seller-tile").forEach(function(t){
       t.addEventListener("click", function(){ goToPinStep(t.dataset.id); });
@@ -1384,7 +1540,7 @@ var auth = getAuth(fbApp);
   function tryPinLogin(){
     var seller = findSeller(loginUi.pendingSellerId);
     if(seller && seller.active && seller.pin === loginUi.pin){
-      loginSuccess("seller", seller.id);
+      loginSuccess(seller.role === "dispatcher" ? "dispatcher" : "seller", seller.id);
     } else {
       document.getElementById("pinDots").classList.add("err");
       toast("PIN incorrecto", true);
@@ -1393,14 +1549,52 @@ var auth = getAuth(fbApp);
   }
 
   function tryAdminLogin(){
-    var val = document.getElementById("adminPasswordInput").value;
-    if(val && val === state.settings.adminPassword){
+    var input = document.getElementById("adminPasswordInput");
+    var val = input.value;
+    if(!val) return;
+    var btn = document.getElementById("adminLoginBtn");
+    btn.disabled = true;
+    signInWithEmailAndPassword(auth, ADMIN_EMAIL, val).then(function(){
       loginSuccess("admin", null);
-    } else {
-      toast("Contraseña incorrecta", true);
-      var input = document.getElementById("adminPasswordInput");
+      btn.disabled = false;
+    }).catch(function(e){
+      console.error(e);
+      var msg = "Contraseña incorrecta";
+      if(e && e.code === "auth/too-many-requests") msg = "Demasiados intentos — esperá un momento y volvé a probar";
+      toast(msg, true);
       input.value = ""; input.focus();
-    }
+      btn.disabled = false;
+    });
+  }
+
+  function changeAdminPassword(){
+    var curInput = document.getElementById("cfgCurrentPassword");
+    var newInput = document.getElementById("cfgNewPassword");
+    var cur = curInput.value, next = newInput.value;
+    if(!cur){ toast("Ingresá tu contraseña actual", true); return; }
+    if(!next || next.length < 6){ toast("La contraseña nueva debe tener al menos 6 caracteres", true); return; }
+    if(!auth.currentUser){ toast("Volvé a ingresar como administrador", true); return; }
+    var btn = document.getElementById("changeAdminPasswordBtn");
+    btn.disabled = true;
+    var cred = EmailAuthProvider.credential(ADMIN_EMAIL, cur);
+    reauthenticateWithCredential(auth.currentUser, cred).then(function(){
+      return updatePassword(auth.currentUser, next);
+    }).then(function(){
+      writeAuditLog("admin_password_changed", {});
+      curInput.value = ""; newInput.value = "";
+      toast("Contraseña actualizada");
+      btn.disabled = false;
+    }).catch(function(e){
+      console.error(e);
+      toast("La contraseña actual no es correcta", true);
+      btn.disabled = false;
+    });
+  }
+
+  function writeAuditLog(action, details){
+    if(!auth.currentUser || session.role !== "admin") return;
+    var ref = doc(collection(db,"auditLog"));
+    setDoc(ref, {action:action, details: details || {}, ts: Date.now()}).catch(function(e){ console.error("audit log error", e); });
   }
 
   function loginSuccess(role, sellerId){
@@ -1411,7 +1605,7 @@ var auth = getAuth(fbApp);
     document.getElementById("appRoot").style.display = "";
     cart = [];
     ui.discountTouched = false; ui.surchargeTouched = false;
-    currentTab = "vender";
+    currentTab = (role === "dispatcher") ? "despachar" : "vender";
     document.getElementById("discountInput").value = 0;
     document.getElementById("surchargeInput").value = 0;
     setPayMethod("efectivo");
@@ -1426,10 +1620,12 @@ var auth = getAuth(fbApp);
     ["historyList","sellersManageList","productsTbody","sellerSummaryBody"].forEach(function(id){
       var el = document.getElementById(id); if(el) el.innerHTML = "";
     });
-    var pwd = document.getElementById("cfgAdminPassword"); if(pwd) pwd.value = "";
+    var curPwd = document.getElementById("cfgCurrentPassword"); if(curPwd) curPwd.value = "";
+    var newPwd = document.getElementById("cfgNewPassword"); if(newPwd) newPwd.value = "";
   }
 
   function logout(){
+    var wasAdmin = session.role === "admin";
     session.role = null; session.sellerId = null;
     document.body.removeAttribute("data-role");
     cart = [];
@@ -1438,24 +1634,53 @@ var auth = getAuth(fbApp);
     renderLoginChooser();
     document.getElementById("appRoot").style.display = "none";
     document.getElementById("loginScreen").style.display = "";
+    if(wasAdmin){
+      signOut(auth).then(function(){ return signInAnonymously(auth); }).catch(function(e){ console.error(e); });
+    }
   }
 
   function renderIdentityBadge(){
     var avatar = document.getElementById("identityAvatar");
     var name = document.getElementById("identityName");
     var roleChip = document.getElementById("identityRole");
+    var cajaChip = document.getElementById("identityCajaChip");
     if(session.role === "admin"){
       avatar.textContent = "A";
       name.textContent = "Administrador";
       roleChip.textContent = "Admin";
       roleChip.className = "chip accent";
+      if(cajaChip) cajaChip.style.display = "none";
+      renderAdminCajaSelect();
     } else {
       var s = findSeller(session.sellerId);
       avatar.textContent = initials(s ? s.name : "") || "?";
       name.textContent = s ? s.name : "—";
-      roleChip.textContent = "Vendedor";
+      roleChip.textContent = session.role === "dispatcher" ? "Despachador" : "Vendedor";
       roleChip.className = "chip neutral";
+      if(cajaChip){
+        var c = s ? findCaja(s.cajaId) : null;
+        if(c){ cajaChip.textContent = c.name; cajaChip.style.display = ""; } else { cajaChip.style.display = "none"; }
+      }
     }
+  }
+
+  function renderAdminCajaSelect(){
+    var sel = document.getElementById("adminCajaSelect");
+    if(!sel) return;
+    var actives = activeCajas();
+    if(actives.length === 0){
+      sel.innerHTML = '<option value="">Sin cajas</option>';
+      sel.value = "";
+      adminActiveCajaId = null;
+      return;
+    }
+    if(!adminActiveCajaId || !actives.some(function(c){ return c.id === adminActiveCajaId; })){
+      adminActiveCajaId = actives[0].id;
+    }
+    sel.innerHTML = actives.map(function(c){
+      return '<option value="' + c.id + '"' + (c.id===adminActiveCajaId?' selected':'') + '>' + escapeHtml(c.name) + '</option>';
+    }).join("");
+    sel.value = adminActiveCajaId;
   }
 
   /* ---------------- nav / tabs ---------------- */
@@ -1463,6 +1688,9 @@ var auth = getAuth(fbApp);
   function navForRole(){
     if(session.role === "admin"){
       return [{id:"vender",label:"Vender"},{id:"productos",label:"Productos"},{id:"clientes",label:"Clientes"},{id:"caja",label:"Caja"},{id:"historial",label:"Historial"},{id:"config",label:"Configuración"}];
+    }
+    if(session.role === "dispatcher"){
+      return [{id:"despachar",label:"Despachar"},{id:"stock",label:"Stock"},{id:"historial",label:"Historial"}];
     }
     return [{id:"vender",label:"Vender"},{id:"stock",label:"Stock"},{id:"historial",label:"Historial"}];
   }
@@ -1492,6 +1720,7 @@ var auth = getAuth(fbApp);
     if(tab === "caja") renderCaja();
     if(tab === "config") renderConfig();
     if(tab === "stock") renderStockTab();
+    if(tab === "despachar") renderDispatchTab();
   }
 
   function renderAll(){
@@ -1525,7 +1754,13 @@ var auth = getAuth(fbApp);
   function renderCatalog(){
     var grid = document.getElementById("catalogGrid");
     var q = ui.search.trim().toLowerCase();
+    if(!currentCajaId()){
+      document.getElementById("catalog-count").textContent = "";
+      grid.innerHTML = '<div class="empty-hint">Primero creá una caja en Configuración.</div>';
+      return;
+    }
     var list = state.products.filter(function(p){
+      if(p.cajaId !== currentCajaId()) return false;
       if(ui.category !== "Todos" && p.category !== ui.category) return false;
       if(q){
         var nameMatch = p.name.toLowerCase().indexOf(q) !== -1;
@@ -1639,6 +1874,7 @@ var auth = getAuth(fbApp);
       '<div class="t-dim" style="margin-top:6px;">Vendedor: ' + escapeHtml(sale.sellerName||"—") + '</div>' +
       '<div class="t-dim">Pago: ' + pm.label + (sale.paymentMethod==="fiado" && sale.customerName ? ' — ' + escapeHtml(sale.customerName) : '') + '</div>' +
       '<div class="t-foot">¡Gracias por su compra!<br>Ticket N.° ' + sale.shortId + '</div>' +
+      (/^[0-9]+$/.test(String(sale.shortId)) ? '<div class="t-barcode-wrap">' + barcodeSvg(sale.shortId, 46) + '<div class="t-barcode-code">' + sale.shortId + '</div></div>' : '') +
       '<div class="t-watermark"><img src="' + LA_JUNTA_LOGO + '" alt="" style="width:120px; height:auto; display:block;"></div>'
     );
   }
@@ -1695,7 +1931,7 @@ var auth = getAuth(fbApp);
   function renderProductsTable(){
     var tbody = document.getElementById("productsTbody");
     if(!tbody) return;
-    var sorted = state.products.slice().sort(function(a,b){ return a.name.localeCompare(b.name, "es"); });
+    var sorted = state.products.filter(function(p){ return p.cajaId === currentCajaId(); }).sort(function(a,b){ return a.name.localeCompare(b.name, "es"); });
     if(sorted.length === 0){
       tbody.innerHTML = '<tr><td colspan="9" class="empty-hint">Todavía no cargaste productos.</td></tr>';
       return;
@@ -1800,6 +2036,7 @@ var auth = getAuth(fbApp);
     renderStockChips();
     var q = ui.stockSearch.trim().toLowerCase();
     var list = state.products.filter(function(p){
+      if(p.cajaId !== currentCajaId()) return false;
       if(ui.stockCategory !== "Todos" && p.category !== ui.stockCategory) return false;
       if(q && p.name.toLowerCase().indexOf(q) === -1) return false;
       return true;
@@ -1838,6 +2075,17 @@ var auth = getAuth(fbApp);
 
   /* ---------------- historial (admin) ---------------- */
 
+  function renderCajaFilterSelect(){
+    var el = document.getElementById("cajaFilterSelect");
+    if(!el) return;
+    var list = ["Todos"].concat(state.cajas.slice().sort(function(a,b){ return a.name.localeCompare(b.name,"es"); }).map(function(c){ return c.id; }));
+    el.innerHTML = list.map(function(id){
+      var label = id === "Todos" ? "Todas" : cajaName(id);
+      return '<option value="' + escapeHtml(id) + '">' + escapeHtml(label) + '</option>';
+    }).join("");
+    el.value = ui.cajaFilterHist;
+  }
+
   function renderSellerFilterSelect(){
     var el = document.getElementById("sellerFilterSelect");
     if(!el) return;
@@ -1855,8 +2103,12 @@ var auth = getAuth(fbApp);
     var list = document.getElementById("historyList");
     if(!list) return;
     var isAdmin = session.role === "admin";
-    var scopeSales = isAdmin ? state.sales : state.sales.filter(function(s){ return s.sellerId === session.sellerId; });
-    if(isAdmin) renderSellerFilterSelect();
+    var isDispatcher = session.role === "dispatcher";
+    var scopeSales;
+    if(isAdmin){ scopeSales = state.sales; }
+    else if(isDispatcher){ scopeSales = state.sales.filter(function(s){ return s.dispatcherId === session.sellerId; }); }
+    else { scopeSales = state.sales.filter(function(s){ return s.sellerId === session.sellerId; }); }
+    if(isAdmin){ renderSellerFilterSelect(); renderCajaFilterSelect(); }
     var paymentSel = document.getElementById("paymentFilterSelect");
     if(paymentSel) paymentSel.value = ui.paymentFilter;
     var voidedSel = document.getElementById("voidedFilterSelect");
@@ -1869,6 +2121,9 @@ var auth = getAuth(fbApp);
     var r = computeDateRange(rangeSel ? rangeSel.value : "all", document.getElementById("historyFrom").value, document.getElementById("historyTo").value);
 
     var sales = scopeSales.slice().sort(function(a,b){ return b.ts - a.ts; });
+    if(isAdmin && ui.cajaFilterHist !== "Todos"){
+      sales = sales.filter(function(s){ return s.cajaId === ui.cajaFilterHist; });
+    }
     if(isAdmin && ui.sellerFilter !== "Todos"){
       sales = sales.filter(function(s){ return s.sellerName === ui.sellerFilter; });
     }
@@ -1894,9 +2149,11 @@ var auth = getAuth(fbApp);
           '<div class="sale-head" data-id="' + sale.id + '">' +
             '<span class="sid">' + when.toLocaleDateString("es-AR") + ' ' + when.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"}) + '</span>' +
             '<span class="sale-seller">' + escapeHtml(sale.sellerName||"—") + '</span>' +
+            (isAdmin && state.cajas.length > 1 ? '<span class="chip neutral">' + escapeHtml(cajaName(sale.cajaId)) + '</span>' : '') +
             '<span class="chip neutral">' + itemsCount + ' u.</span>' +
             '<span class="chip ' + pm.chip + '">' + pm.label + '</span>' +
             (sale.paymentMethod==="fiado" && sale.customerName ? '<span class="chip neutral">' + escapeHtml(sale.customerName) + '</span>' : '') +
+            (!voided ? (sale.dispatched ? '<span class="chip good">Despachado' + (sale.dispatchedBy ? ' · ' + escapeHtml(sale.dispatchedBy) : '') + '</span>' : '<span class="chip warn">Sin despachar</span>') : '') +
             (voided ? '<span class="chip danger">ANULADA</span>' : '') +
             '<span class="stotal num' + (voided ? ' struck' : '') + '">' + formatMoney(sale.total) + '</span>' +
           '</div>' +
@@ -2071,14 +2328,15 @@ var auth = getAuth(fbApp);
   /* ---------------- caja (cierre / arqueo, admin) ---------------- */
 
   function cajaPeriodStart(){
-    if(state.cashClosures.length === 0) return 0;
-    var latest = state.cashClosures.reduce(function(max,c){ return c.ts > max ? c.ts : max; }, 0);
+    var closures = state.cashClosures.filter(function(c){ return c.cajaId === adminActiveCajaId; });
+    if(closures.length === 0) return 0;
+    var latest = closures.reduce(function(max,c){ return c.ts > max ? c.ts : max; }, 0);
     return latest;
   }
 
   function cajaMethodBreakdown(){
     var from = cajaPeriodStart();
-    var sales = state.sales.filter(function(s){ return s.ts > from && !s.cancelled; });
+    var sales = state.sales.filter(function(s){ return s.cajaId === adminActiveCajaId && s.ts > from && !s.cancelled; });
     var byMethod = {};
     sales.forEach(function(s){
       var m = s.paymentMethod;
@@ -2128,6 +2386,7 @@ var auth = getAuth(fbApp);
   }
 
   function closeCaja(){
+    if(!adminActiveCajaId){ toast("Elegí una caja para cerrar", true); return; }
     var counted = parseFloat(document.getElementById("cajaCountedInput").value);
     if(isNaN(counted) || counted < 0){ toast("Ingresá el efectivo contado", true); return; }
     var data = cajaMethodBreakdown();
@@ -2136,7 +2395,7 @@ var auth = getAuth(fbApp);
     Object.keys(data.byMethod).forEach(function(m){ byMethodOut[m] = {count:data.byMethod[m].count, total:data.byMethod[m].total}; });
     var closure = {
       id: uid(), ts: Date.now(), periodFrom: cajaPeriodStart(), periodTo: Date.now(),
-      closedBy: currentIdentityName(),
+      closedBy: currentIdentityName(), cajaId: adminActiveCajaId,
       byMethod: byMethodOut,
       expectedCash: expectedCash, countedCash: counted, difference: counted - expectedCash
     };
@@ -2150,7 +2409,7 @@ var auth = getAuth(fbApp);
   function renderCajaHistory(){
     var wrap = document.getElementById("cajaHistoryList");
     if(!wrap) return;
-    var sorted = state.cashClosures.slice().sort(function(a,b){ return b.ts - a.ts; });
+    var sorted = state.cashClosures.filter(function(c){ return c.cajaId === adminActiveCajaId; }).sort(function(a,b){ return b.ts - a.ts; });
     if(sorted.length === 0){
       wrap.innerHTML = '<div class="empty-hint">Todavía no se hizo ningún cierre de caja.</div>';
       return;
@@ -2183,10 +2442,18 @@ var auth = getAuth(fbApp);
       return;
     }
     wrap.innerHTML = sorted.map(function(s){
+      var role = s.role === "dispatcher" ? "dispatcher" : "seller";
       return '<div class="seller-row" data-id="' + s.id + '">' +
         '<span class="seller-avatar">' + escapeHtml(initials(s.name)||"?") + '</span>' +
         '<input type="text" class="seller-name-input" value="' + escapeHtml(s.name) + '">' +
         '<input type="text" class="seller-pin-input" inputmode="numeric" maxlength="4" value="' + escapeHtml(s.pin) + '" title="PIN">' +
+        '<select class="seller-caja-select" title="Caja">' +
+          state.cajas.slice().sort(function(a,b){ return a.name.localeCompare(b.name,"es"); }).map(function(c){ return '<option value="' + c.id + '"' + (s.cajaId===c.id?' selected':'') + '>' + escapeHtml(c.name) + '</option>'; }).join("") +
+        '</select>' +
+        '<select class="seller-role-select" title="Rol">' +
+          '<option value="seller"' + (role==="seller"?' selected':'') + '>Vendedor</option>' +
+          '<option value="dispatcher"' + (role==="dispatcher"?' selected':'') + '>Despachador</option>' +
+        '</select>' +
         '<button class="chip ' + (s.active?'good':'neutral') + ' seller-toggle" type="button">' + (s.active?'Activo':'Inactivo') + '</button>' +
         '<button class="btn icon ghost seller-del-btn" title="Eliminar" style="color:var(--danger);">' + ICONS.trash + '</button>' +
       '</div>';
@@ -2205,6 +2472,18 @@ var auth = getAuth(fbApp);
         var v = e.target.value.replace(/\D/g,"").slice(0,4);
         if(v.length === 4){ s.pin = v; saveSellerDoc(s); toast("PIN actualizado"); } else { toast("El PIN debe tener 4 dígitos", true); }
         e.target.value = s.pin;
+      });
+      row.querySelector(".seller-caja-select").addEventListener("change", function(e){
+        var s = findSeller(id); if(!s) return;
+        s.cajaId = e.target.value;
+        saveSellerDoc(s); renderSellersManageList(); renderLoginChooser(); renderHistory();
+        toast("Caja actualizada");
+      });
+      row.querySelector(".seller-role-select").addEventListener("change", function(e){
+        var s = findSeller(id); if(!s) return;
+        s.role = e.target.value === "dispatcher" ? "dispatcher" : "seller";
+        saveSellerDoc(s); renderSellersManageList(); renderLoginChooser(); renderHistory();
+        toast("Rol actualizado: " + (s.role === "dispatcher" ? "Despachador" : "Vendedor"));
       });
       row.querySelector(".seller-toggle").addEventListener("click", function(){
         var s = findSeller(id); if(!s) return;
@@ -2243,9 +2522,52 @@ var auth = getAuth(fbApp);
     document.getElementById("cfgSurchargeQR").value = state.settings.surchargeQR;
     document.getElementById("cfgSurchargePosnet").value = state.settings.surchargePosnet;
     document.getElementById("cfgLowStock").value = state.settings.lowStock;
-    document.getElementById("cfgAdminPassword").value = state.settings.adminPassword;
     document.getElementById("biz-name-display").textContent = state.settings.businessName || "Mi negocio";
+    renderCajasManageList();
+    renderNewSellerCajaOptions();
     renderSellersManageList();
+  }
+
+  function renderNewSellerCajaOptions(){
+    var sel = document.getElementById("newSellerCaja");
+    if(!sel) return;
+    var actives = activeCajas();
+    sel.innerHTML = actives.map(function(c){ return '<option value="' + c.id + '">' + escapeHtml(c.name) + '</option>'; }).join("");
+  }
+
+  function renderCajasManageList(){
+    var wrap = document.getElementById("cajasManageList");
+    if(!wrap) return;
+    var sorted = state.cajas.slice().sort(function(a,b){
+      if(a.active !== b.active) return a.active ? -1 : 1;
+      return a.name.localeCompare(b.name, "es");
+    });
+    if(sorted.length === 0){
+      wrap.innerHTML = '<div class="empty-hint">No hay cajas cargadas.</div>';
+      return;
+    }
+    wrap.innerHTML = sorted.map(function(c){
+      return '<div class="caja-row" data-id="' + c.id + '">' +
+        '<span class="seller-avatar">' + escapeHtml(initials(c.name)||"?") + '</span>' +
+        '<input type="text" class="caja-name-input" value="' + escapeHtml(c.name) + '">' +
+        '<button class="chip ' + (c.active?'good':'neutral') + ' caja-toggle" type="button">' + (c.active?'Activa':'Inactiva') + '</button>' +
+      '</div>';
+    }).join("");
+    wrap.querySelectorAll(".caja-row").forEach(function(row){
+      var id = row.dataset.id;
+      row.querySelector(".caja-name-input").addEventListener("change", function(e){
+        var c = findCaja(id); if(!c) return;
+        var v = e.target.value.trim();
+        c.name = v || c.name;
+        e.target.value = c.name;
+        saveCajaDoc(c); renderCajasManageList(); renderLoginChooser(); renderAdminCajaSelect(); renderSellersManageList(); renderNewSellerCajaOptions(); renderHistory();
+      });
+      row.querySelector(".caja-toggle").addEventListener("click", function(){
+        var c = findCaja(id); if(!c) return;
+        c.active = !c.active;
+        saveCajaDoc(c); renderCajasManageList(); renderLoginChooser(); renderAdminCajaSelect(); renderNewSellerCajaOptions();
+      });
+    });
   }
 
   /* ---------------- cart actions ---------------- */
@@ -2266,6 +2588,7 @@ var auth = getAuth(fbApp);
     if(!code) return null;
     for(var i=0;i<state.products.length;i++){
       var p = state.products[i];
+      if(p.cajaId !== currentCajaId()) continue;
       if(p.sku && p.sku.trim().toLowerCase() === code) return p;
     }
     return null;
@@ -2310,6 +2633,8 @@ var auth = getAuth(fbApp);
 
   function confirmSale(){
     if(cart.length === 0) return;
+    var cajaId = currentCajaId();
+    if(!cajaId){ toast("No hay ninguna caja seleccionada. Elegí una caja o creá una en Configuración.", true); return; }
     var sellerId, sellerName;
     if(session.role === "seller"){
       var seller = findSeller(session.sellerId);
@@ -2365,7 +2690,7 @@ var auth = getAuth(fbApp);
               id: saleId, shortId: nextNum, ts: Date.now(),
               items: itemsForTicket, subtotal:t.subtotal, discountPct:t.discountPct, discountAmt:t.discountAmt,
               surchargePct:t.surchargePct, surchargeAmt:t.surchargeAmt, total:t.total, paymentMethod: payMethod,
-              sellerId: sellerId, sellerName: sellerName
+              sellerId: sellerId, sellerName: sellerName, dispatched: false, cajaId: cajaId
             };
             if(customerId){ sale.customerId = customerId; sale.customerName = customerName; }
             tx.set(doc(db,"sales",saleId), sale);
@@ -2456,6 +2781,125 @@ var auth = getAuth(fbApp);
       if(btn) btn.disabled = false;
       console.error(err);
       toast(String((err && err.message) || "No se pudo anular la venta"), true);
+    });
+  }
+
+  /* ---------------- despacho (despachador) ---------------- */
+
+  function renderDispatchTab(){
+    var input = document.getElementById("dispatchScanInput");
+    if(input){ input.value = ""; setTimeout(function(){ input.focus(); }, 30); }
+    renderDispatchRecentList();
+  }
+
+  function renderDispatchRecentList(){
+    var wrap = document.getElementById("dispatchRecentList");
+    if(!wrap) return;
+    var mine = state.sales.filter(function(s){ return s.dispatcherId === session.sellerId && s.dispatched; })
+      .sort(function(a,b){ return (b.dispatchedAt||0) - (a.dispatchedAt||0); }).slice(0,8);
+    if(mine.length === 0){
+      wrap.innerHTML = '<div class="hint">Todavía no despachaste ningún ticket en esta sesión.</div>';
+      return;
+    }
+    wrap.innerHTML = '<div class="section-title" style="margin-top:0;">Despachado recientemente</div>' + mine.map(function(s){
+      var when = new Date(s.dispatchedAt);
+      return '<div class="seller-summary-row"><span class="nm">Ticket N.° ' + s.shortId + '</span><span class="cnt">' + when.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"}) + '</span></div>';
+    }).join("");
+  }
+
+  function findSaleByShortId(code){
+    code = String(code||"").trim();
+    if(!code) return null;
+    for(var i=0;i<state.sales.length;i++){
+      if(String(state.sales[i].shortId) === code) return state.sales[i];
+    }
+    return null;
+  }
+
+  function handleDispatchScan(code){
+    var sale = findSaleByShortId(code);
+    if(!sale){ toast("No se encontró ninguna venta con ese código", true); return; }
+    if(sale.cajaId !== currentCajaId()){ toast("Ticket N.° " + sale.shortId + ": pertenece a otra caja (" + cajaName(sale.cajaId) + ")", true); return; }
+    if(sale.cancelled){ toast("Ticket N.° " + sale.shortId + ": la venta fue anulada, no corresponde despacho", true); return; }
+    if(sale.dispatched){ openDispatchModal(sale, "already"); return; }
+    openDispatchModal(sale, "confirm");
+  }
+
+  function openDispatchModal(sale, mode){
+    dispatchModalState = {sale:sale, mode:mode};
+    var title = document.getElementById("dispatchModalTitle");
+    var body = document.getElementById("dispatchModalBody");
+    var foot = document.getElementById("dispatchModalFoot");
+    var itemsCount = sale.items.reduce(function(s,it){ return s+it.qty; }, 0);
+    var itemsList = sale.items.map(function(it){ return '<div class="li"><span>' + escapeHtml(it.name) + ' ×' + it.qty + '</span></div>'; }).join("");
+    if(mode === "confirm"){
+      title.textContent = "Confirmar despacho";
+      body.innerHTML =
+        '<div class="confirm-sale-summary">' +
+          '<div class="confirm-sale-count">Ticket N.° ' + sale.shortId + '</div>' +
+          '<div class="confirm-sale-total num" style="font-size:20px;">' + itemsCount + ' producto' + (itemsCount===1?'':'s') + '</div>' +
+        '</div>' +
+        '<div style="max-height:160px; overflow-y:auto;">' + itemsList + '</div>' +
+        '<p class="hint">Vendido por ' + escapeHtml(sale.sellerName||"—") + ' · ' + new Date(sale.ts).toLocaleString("es-AR") + '</p>';
+      foot.innerHTML =
+        '<button class="btn ghost" id="dispatchCancelBtn">Cancelar</button>' +
+        '<button class="btn primary" id="dispatchConfirmBtn">Confirmar entrega</button>';
+      foot.querySelector("#dispatchCancelBtn").addEventListener("click", closeDispatchModal);
+      foot.querySelector("#dispatchConfirmBtn").addEventListener("click", function(){ confirmDispatch(sale, this); });
+    } else {
+      title.textContent = "Ticket ya despachado";
+      body.innerHTML =
+        '<div class="confirm-sale-summary">' +
+          '<div class="confirm-sale-count">Ticket N.° ' + sale.shortId + '</div>' +
+        '</div>' +
+        '<p class="hint">Este ticket ya fue despachado por <b>' + escapeHtml(sale.dispatchedBy||"—") + '</b> el ' + new Date(sale.dispatchedAt||sale.ts).toLocaleString("es-AR") + '. Puede ser una copia del ticket original.</p>';
+      foot.innerHTML = '<button class="btn primary" id="dispatchCloseInfoBtn">Entendido</button>';
+      foot.querySelector("#dispatchCloseInfoBtn").addEventListener("click", closeDispatchModal);
+    }
+    document.getElementById("dispatchOverlay").classList.add("show");
+  }
+
+  function closeDispatchModal(){
+    document.getElementById("dispatchOverlay").classList.remove("show");
+    dispatchModalState = null;
+    var input = document.getElementById("dispatchScanInput");
+    if(input){ input.value = ""; input.focus(); }
+  }
+
+  function confirmDispatch(sale, btn){
+    if(btn) btn.disabled = true;
+    var dispatcherName = currentIdentityName();
+    var dispatcherId = session.sellerId;
+    var dispatcherCajaId = currentCajaId();
+    runTransaction(db, function(tx){
+      var sRef = saleRef(sale.id);
+      return tx.get(sRef).then(function(snap){
+        if(!snap.exists()) throw new Error("La venta ya no existe");
+        var data = snap.data();
+        if(data.cajaId !== dispatcherCajaId) throw new Error("Este ticket pertenece a otra caja");
+        if(data.cancelled) throw new Error("La venta fue anulada, no corresponde despacho");
+        if(data.dispatched) throw new Error("ALREADY");
+        var dispatchedAt = Date.now();
+        tx.update(sRef, {dispatched:true, dispatchedAt:dispatchedAt, dispatchedBy:dispatcherName, dispatcherId:dispatcherId});
+        var full = {}; Object.keys(data).forEach(function(k){ full[k]=data[k]; });
+        full.id = sale.id; full.dispatched = true; full.dispatchedAt = dispatchedAt; full.dispatchedBy = dispatcherName; full.dispatcherId = dispatcherId;
+        return full;
+      });
+    }).then(function(fullSale){
+      closeDispatchModal();
+      toast("Ticket N.° " + fullSale.shortId + " despachado");
+      renderDispatchRecentList();
+      if(currentTab === "historial") renderHistory();
+    }).catch(function(err){
+      if(btn) btn.disabled = false;
+      var msg = String((err && err.message) || err);
+      if(msg === "ALREADY"){
+        toast("Ese ticket ya fue despachado por otra persona recién", true);
+        closeDispatchModal();
+      } else {
+        console.error(err);
+        toast(msg || "No se pudo confirmar el despacho", true);
+      }
     });
   }
 
@@ -2753,6 +3197,7 @@ var auth = getAuth(fbApp);
   function saveProduct(){
     var name = document.getElementById("pfName").value.trim();
     if(!name){ toast("Ingresá un nombre para el producto", true); return; }
+    if(!editingId && !currentCajaId()){ toast("Primero creá o seleccioná una caja en Configuración.", true); return; }
     var category = document.getElementById("pfCategory").value;
     var sku = document.getElementById("pfSku").value.trim();
     var price = parseFloat(document.getElementById("pfPrice").value) || 0;
@@ -2763,7 +3208,7 @@ var auth = getAuth(fbApp);
       var p = findProduct(editingId);
       if(p){ p.name=name; p.category=category; p.sku=sku; p.price=price; p.cost=cost; p.stock=stock; p.photo=pfPhotoData; target = p; }
     } else {
-      target = {id:uid(), name:name, category:category, sku:sku, price:price, cost:cost, stock:stock, photo:pfPhotoData};
+      target = {id:uid(), name:name, category:category, sku:sku, price:price, cost:cost, stock:stock, photo:pfPhotoData, cajaId:currentCajaId()};
       state.products.push(target);
     }
     if(target) saveProductDoc(target);
@@ -2780,7 +3225,7 @@ var auth = getAuth(fbApp);
   }
   function massPriceTargets(){
     var cat = document.getElementById("mpCategory").value;
-    return state.products.filter(function(p){ return cat === "Todos" || p.category === cat; });
+    return state.products.filter(function(p){ return p.cajaId === currentCajaId() && (cat === "Todos" || p.category === cat); });
   }
   function openMassPriceModal(){
     var sel = document.getElementById("mpCategory");
@@ -2878,6 +3323,17 @@ var auth = getAuth(fbApp);
           confirmSale();
           return;
         }
+        var dOverlay = document.getElementById("dispatchOverlay");
+        if(dOverlay && dOverlay.classList.contains("show")){
+          e.preventDefault();
+          if(dispatchModalState && dispatchModalState.mode === "confirm"){
+            var dBtn = document.getElementById("dispatchConfirmBtn");
+            if(dBtn) dBtn.click();
+          } else if(dispatchModalState && dispatchModalState.mode === "already"){
+            closeDispatchModal();
+          }
+          return;
+        }
         if(session.role && currentTab === "vender" && cart.length > 0 && !document.querySelector(".overlay.show")){
           e.preventDefault();
           openConfirmSaleModal();
@@ -2885,6 +3341,8 @@ var auth = getAuth(fbApp);
       } else if(e.key === "Escape"){
         var confirmOverlay = document.getElementById("confirmSaleOverlay");
         if(confirmOverlay.classList.contains("show")) closeConfirmSaleModal();
+        var dispatchOv = document.getElementById("dispatchOverlay");
+        if(dispatchOv && dispatchOv.classList.contains("show")) closeDispatchModal();
       }
     });
 
@@ -2908,6 +3366,18 @@ var auth = getAuth(fbApp);
       printSale(pseudoSale);
     });
 
+    document.getElementById("dispatchScanInput").addEventListener("keydown", function(e){
+      if(e.key !== "Enter") return;
+      var code = e.target.value;
+      if(!code.trim()) return;
+      e.preventDefault();
+      e.stopPropagation();
+      handleDispatchScan(code);
+      e.target.value = "";
+    });
+    document.getElementById("closeDispatchModal").addEventListener("click", closeDispatchModal);
+    document.getElementById("dispatchOverlay").addEventListener("click", function(e){ if(e.target.id === "dispatchOverlay") closeDispatchModal(); });
+
     document.getElementById("stockSearchInput").addEventListener("input", function(e){
       ui.stockSearch = e.target.value; renderStockTab();
     });
@@ -2923,6 +3393,9 @@ var auth = getAuth(fbApp);
     document.getElementById("historyRangeSelect").addEventListener("change", renderHistory);
     document.getElementById("historyFrom").addEventListener("change", renderHistory);
     document.getElementById("historyTo").addEventListener("change", renderHistory);
+    document.getElementById("cajaFilterSelect").addEventListener("change", function(){
+      ui.cajaFilterHist = this.value; renderHistory();
+    });
     document.getElementById("sellerFilterSelect").addEventListener("change", function(){
       ui.sellerFilter = this.value; renderHistory();
     });
@@ -2933,7 +3406,10 @@ var auth = getAuth(fbApp);
       ui.onlyVoided = (this.value === "anuladas"); renderHistory();
     });
 
-    document.getElementById("newProductBtn").addEventListener("click", function(){ openProductModal(null); });
+    document.getElementById("newProductBtn").addEventListener("click", function(){
+      if(!currentCajaId()){ toast("Primero creá o seleccioná una caja en Configuración.", true); return; }
+      openProductModal(null);
+    });
     document.getElementById("closeProductModal").addEventListener("click", closeProductModal);
     document.getElementById("cancelProductBtn").addEventListener("click", closeProductModal);
     document.getElementById("saveProductBtn").addEventListener("click", saveProduct);
@@ -2991,33 +3467,62 @@ var auth = getAuth(fbApp);
 
     document.getElementById("addSellerBtn").addEventListener("click", function(){
       var input = document.getElementById("newSellerInput");
+      var roleSel = document.getElementById("newSellerRole");
+      var cajaSel = document.getElementById("newSellerCaja");
       var name = input.value.trim();
       if(!name){ toast("Ingresá un nombre", true); return; }
+      var cajaId = cajaSel ? cajaSel.value : "";
+      if(!cajaId){ toast("Primero creá una caja en la sección de arriba", true); return; }
+      var role = (roleSel && roleSel.value === "dispatcher") ? "dispatcher" : "seller";
       var pin = String(Math.floor(1000 + Math.random()*9000));
-      var s = {id:uid(), name:name, active:true, pin:pin};
+      var s = {id:uid(), name:name, active:true, pin:pin, role:role, cajaId:cajaId};
       state.sellers.push(s);
       input.value = "";
+      if(roleSel) roleSel.value = "seller";
       saveSellerDoc(s);
       renderSellersManageList(); renderLoginChooser();
-      toast("Vendedor agregado — PIN: " + pin);
+      toast((role==="dispatcher"?"Despachador agregado":"Vendedor agregado") + " — PIN: " + pin);
     });
     document.getElementById("newSellerInput").addEventListener("keydown", function(e){
       if(e.key === "Enter"){ document.getElementById("addSellerBtn").click(); }
     });
 
-    ["cfgName","cfgAddress","cfgSurchargeQR","cfgSurchargePosnet","cfgLowStock","cfgAdminPassword"].forEach(function(id){
+    document.getElementById("addCajaBtn").addEventListener("click", function(){
+      var input = document.getElementById("newCajaInput");
+      var name = input.value.trim();
+      if(!name){ toast("Ingresá un nombre para la caja", true); return; }
+      var c = {id:uid(), name:name, active:true};
+      state.cajas.push(c);
+      input.value = "";
+      saveCajaDoc(c);
+      renderCajasManageList(); renderAdminCajaSelect(); renderNewSellerCajaOptions();
+      toast("Caja agregada");
+    });
+    document.getElementById("newCajaInput").addEventListener("keydown", function(e){
+      if(e.key === "Enter"){ document.getElementById("addCajaBtn").click(); }
+    });
+
+    document.getElementById("adminCajaSelect").addEventListener("change", function(e){
+      adminActiveCajaId = e.target.value || null;
+      cart = []; renderCart();
+      renderCatalog(); renderCatChips(); renderProductsTable(); renderStockTab();
+      if(currentTab === "caja") renderCaja();
+      renderTicketPreview();
+    });
+
+    ["cfgName","cfgAddress","cfgSurchargeQR","cfgSurchargePosnet","cfgLowStock"].forEach(function(id){
       document.getElementById(id).addEventListener("change", function(){
         state.settings.businessName = document.getElementById("cfgName").value.trim() || "Mi negocio";
         state.settings.address = document.getElementById("cfgAddress").value.trim();
         state.settings.surchargeQR = parseFloat(document.getElementById("cfgSurchargeQR").value) || 0;
         state.settings.surchargePosnet = parseFloat(document.getElementById("cfgSurchargePosnet").value) || 0;
         state.settings.lowStock = parseInt(document.getElementById("cfgLowStock").value,10) || 0;
-        state.settings.adminPassword = document.getElementById("cfgAdminPassword").value.trim() || state.settings.adminPassword;
         saveSettingsDoc();
         renderConfig(); renderProductsTable(); renderCatalog();
         toast("Configuración guardada");
       });
     });
+    document.getElementById("changeAdminPasswordBtn").addEventListener("click", changeAdminPassword);
     document.getElementById("resetDataBtn").addEventListener("click", function(){
       if(pendingReset){
         pendingReset = false;
