@@ -390,10 +390,10 @@
   .seller-add-row{display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;}
   .seller-add-row input{flex:1; border:1px solid var(--border); background:var(--surface); border-radius:8px; padding:8px 10px; font-size:13px;}
   .seller-add-row select{border:1px solid var(--border); background:var(--surface); border-radius:8px; padding:8px 10px; font-size:12.5px; color:var(--ink);}
-  .seller-row, .caja-row{
+  .seller-row, .caja-row, .admin-row{
     display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--border-soft); border-radius:8px; margin-bottom:7px; background:var(--surface-2);
   }
-  .seller-row .seller-avatar, .caja-row .seller-avatar{width:26px; height:26px;}
+  .seller-row .seller-avatar, .caja-row .seller-avatar, .admin-row .seller-avatar{width:26px; height:26px;}
   .seller-name-input{
     flex:1; min-width:70px; border:1px solid transparent; background:transparent; font-weight:600; font-size:13px; color:var(--ink);
     border-radius:6px; padding:5px 7px;
@@ -494,6 +494,8 @@
     <div class="login-step" id="loginStepAdmin" style="display:none;">
       <button class="login-back" id="adminBackBtn" type="button">← Volver</button>
       <div>
+        <div class="login-label">Usuario (dejalo vacío si sos el administrador principal)</div>
+        <input type="text" id="adminUserInput" class="admin-pass-input" placeholder="admin" autocomplete="off" autocapitalize="off" style="margin-bottom:10px;">
         <div class="login-label">Contraseña de administrador</div>
         <input type="password" id="adminPasswordInput" class="admin-pass-input" placeholder="••••">
       </div>
@@ -879,6 +881,17 @@
             <button class="btn sm" id="changeAdminPasswordBtn" type="button">Actualizar contraseña</button>
           </div>
 
+          <div class="section-title" id="adminsSectionTitle" style="display:none;">Administradores</div>
+          <p class="hint" id="adminsSectionHint" style="margin-top:-4px; margin-bottom:10px; max-width:520px; display:none;">Como administrador principal podés crear otras cuentas de administrador. Las que crees acá tienen todos los permisos de administrador, pero no pueden crear más cuentas — eso queda reservado para la tuya.</p>
+          <div class="seller-manage" id="adminsSectionWrap" style="display:none;">
+            <div class="seller-add-row">
+              <input type="text" id="newAdminUserInput" placeholder="Usuario (ej: ana)" autocapitalize="off">
+              <input type="password" id="newAdminPasswordInput" placeholder="Contraseña (mínimo 6)" autocomplete="off">
+              <button class="btn primary sm" id="addAdminBtn" type="button">Crear administrador</button>
+            </div>
+            <div id="adminsManageList"></div>
+          </div>
+
           <div class="section-title">Datos</div>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <button class="btn sm danger-text" id="resetDataBtn">Restablecer datos de ejemplo</button>
@@ -1046,7 +1059,7 @@ import {
   getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc,
   onSnapshot, writeBatch, runTransaction
 } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
-import { getAuth, signInAnonymously, onAuthStateChanged, signInWithEmailAndPassword, signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+import { getAuth, signInAnonymously, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
 
 var firebaseConfig = {
   apiKey: "AIzaSyB0WTjMFd52bZSEPZhMY-D38ZEkaY7IWNw",
@@ -1059,7 +1072,10 @@ var firebaseConfig = {
 var fbApp = initializeApp(firebaseConfig);
 var db = getFirestore(fbApp);
 var auth = getAuth(fbApp);
-var ADMIN_EMAIL = "admin@" + firebaseConfig.projectId + ".local";
+var ADMIN_DOMAIN = "@" + firebaseConfig.projectId + ".local";
+var ADMIN_EMAIL = "admin" + ADMIN_DOMAIN;
+var sessionIsRootAdmin = false;
+var __secondaryAdminAppCounter = 0;
 
 (function(){
   "use strict";
@@ -1500,9 +1516,11 @@ var ADMIN_EMAIL = "admin@" + firebaseConfig.projectId + ".local";
 
   function goToAdminStep(){
     showLoginStep("admin");
+    var userInput = document.getElementById("adminUserInput");
     var input = document.getElementById("adminPasswordInput");
+    if(userInput) userInput.value = "";
     input.value = "";
-    input.focus();
+    userInput.focus();
   }
 
   function renderPinPad(){
@@ -1549,12 +1567,15 @@ var ADMIN_EMAIL = "admin@" + firebaseConfig.projectId + ".local";
   }
 
   function tryAdminLogin(){
+    var userInput = document.getElementById("adminUserInput");
     var input = document.getElementById("adminPasswordInput");
     var val = input.value;
     if(!val) return;
+    var username = (userInput && userInput.value.trim()) ? userInput.value.trim().toLowerCase() : "admin";
+    var email = username + ADMIN_DOMAIN;
     var btn = document.getElementById("adminLoginBtn");
     btn.disabled = true;
-    signInWithEmailAndPassword(auth, ADMIN_EMAIL, val).then(function(){
+    signInWithEmailAndPassword(auth, email, val).then(function(){
       loginSuccess("admin", null);
       btn.disabled = false;
     }).catch(function(e){
@@ -1576,7 +1597,7 @@ var ADMIN_EMAIL = "admin@" + firebaseConfig.projectId + ".local";
     if(!auth.currentUser){ toast("Volvé a ingresar como administrador", true); return; }
     var btn = document.getElementById("changeAdminPasswordBtn");
     btn.disabled = true;
-    var cred = EmailAuthProvider.credential(ADMIN_EMAIL, cur);
+    var cred = EmailAuthProvider.credential(auth.currentUser.email, cur);
     reauthenticateWithCredential(auth.currentUser, cred).then(function(){
       return updatePassword(auth.currentUser, next);
     }).then(function(){
@@ -1614,6 +1635,14 @@ var ADMIN_EMAIL = "admin@" + firebaseConfig.projectId + ".local";
     renderAll();
     var who = role === "admin" ? "Administrador" : ((findSeller(sellerId)||{}).name || "");
     toast("Hola, " + who);
+    if(role === "admin" && auth.currentUser){
+      getDoc(doc(db,"admins",auth.currentUser.uid)).then(function(snap){
+        sessionIsRootAdmin = snap.exists() && snap.data().root === true;
+        if(currentTab === "config") renderConfig();
+      }).catch(function(){ sessionIsRootAdmin = false; });
+    } else {
+      sessionIsRootAdmin = false;
+    }
   }
 
   function clearSensitiveDom(){
@@ -1627,6 +1656,7 @@ var ADMIN_EMAIL = "admin@" + firebaseConfig.projectId + ".local";
   function logout(){
     var wasAdmin = session.role === "admin";
     session.role = null; session.sellerId = null;
+    sessionIsRootAdmin = false;
     document.body.removeAttribute("data-role");
     cart = [];
     clearSensitiveDom();
@@ -2526,6 +2556,60 @@ var ADMIN_EMAIL = "admin@" + firebaseConfig.projectId + ".local";
     renderCajasManageList();
     renderNewSellerCajaOptions();
     renderSellersManageList();
+    var adminsTitle = document.getElementById("adminsSectionTitle");
+    var adminsHint = document.getElementById("adminsSectionHint");
+    var adminsWrap = document.getElementById("adminsSectionWrap");
+    if(sessionIsRootAdmin){
+      if(adminsTitle) adminsTitle.style.display = "";
+      if(adminsHint) adminsHint.style.display = "";
+      if(adminsWrap) adminsWrap.style.display = "";
+      renderAdminsManageList();
+    } else {
+      if(adminsTitle) adminsTitle.style.display = "none";
+      if(adminsHint) adminsHint.style.display = "none";
+      if(adminsWrap) adminsWrap.style.display = "none";
+    }
+  }
+
+  function renderAdminsManageList(){
+    var wrap = document.getElementById("adminsManageList");
+    if(!wrap || !sessionIsRootAdmin) return;
+    getDocs(collection(db,"admins")).then(function(snap){
+      var rows = snap.docs.map(function(d){ var x = d.data(); x.id = d.id; return x; });
+      rows.sort(function(a,b){
+        if(!!a.root !== !!b.root) return a.root ? -1 : 1;
+        return (a.username||a.id).localeCompare(b.username||b.id, "es");
+      });
+      if(rows.length === 0){
+        wrap.innerHTML = '<div class="empty-hint">No hay administradores cargados.</div>';
+        return;
+      }
+      wrap.innerHTML = rows.map(function(a){
+        var label = a.username ? a.username : a.id.slice(0,8);
+        return '<div class="admin-row">' +
+          '<span class="seller-avatar">' + escapeHtml(initials(label)||"?") + '</span>' +
+          '<span style="flex:1; font-weight:600;">' + escapeHtml(label) + '</span>' +
+          (a.root ? '<span class="chip accent">Principal</span>' : '<span class="chip neutral">Admin</span>') +
+        '</div>';
+      }).join("");
+    }).catch(function(e){ console.error(e); wrap.innerHTML = '<div class="empty-hint">No se pudo cargar la lista.</div>'; });
+  }
+
+  function createAdminAccount(username, password){
+    var secApp = initializeApp(firebaseConfig, "secondary-admin-" + (++__secondaryAdminAppCounter) + "-" + Date.now());
+    var secAuth = getAuth(secApp);
+    var email = username + ADMIN_DOMAIN;
+    return createUserWithEmailAndPassword(secAuth, email, password).then(function(cred){
+      var newUid = cred.user.uid;
+      return signOut(secAuth).then(function(){
+        return setDoc(doc(db,"admins", newUid), {
+          root: false,
+          username: username,
+          createdAt: Date.now(),
+          createdBy: (auth.currentUser && auth.currentUser.email) || ""
+        });
+      });
+    });
   }
 
   function renderNewSellerCajaOptions(){
@@ -3550,8 +3634,41 @@ var ADMIN_EMAIL = "admin@" + firebaseConfig.projectId + ".local";
     document.getElementById("pinBackBtn").addEventListener("click", backToChooser);
     document.getElementById("adminBackBtn").addEventListener("click", backToChooser);
     document.getElementById("adminLoginBtn").addEventListener("click", tryAdminLogin);
+    document.getElementById("adminUserInput").addEventListener("keydown", function(e){
+      if(e.key === "Enter"){ e.preventDefault(); document.getElementById("adminPasswordInput").focus(); }
+    });
     document.getElementById("adminPasswordInput").addEventListener("keydown", function(e){
       if(e.key === "Enter") tryAdminLogin();
+    });
+
+    document.getElementById("addAdminBtn").addEventListener("click", function(){
+      var userInput = document.getElementById("newAdminUserInput");
+      var passInput = document.getElementById("newAdminPasswordInput");
+      var username = userInput.value.trim().toLowerCase().replace(/[^a-z0-9._-]/g,"");
+      var password = passInput.value;
+      if(!username){ toast("Ingresá un usuario para el nuevo administrador", true); return; }
+      if(!password || password.length < 6){ toast("La contraseña debe tener al menos 6 caracteres", true); return; }
+      var btn = document.getElementById("addAdminBtn");
+      btn.disabled = true;
+      createAdminAccount(username, password).then(function(){
+        userInput.value = ""; passInput.value = "";
+        toast("Administrador creado: " + username);
+        renderAdminsManageList();
+        btn.disabled = false;
+      }).catch(function(e){
+        console.error(e);
+        var msg = "No se pudo crear el administrador";
+        if(e && e.code === "auth/email-already-in-use") msg = "Ese usuario ya existe";
+        if(e && e.code === "auth/weak-password") msg = "La contraseña es muy débil";
+        toast(msg, true);
+        btn.disabled = false;
+      });
+    });
+    document.getElementById("newAdminUserInput").addEventListener("keydown", function(e){
+      if(e.key === "Enter"){ document.getElementById("newAdminPasswordInput").focus(); }
+    });
+    document.getElementById("newAdminPasswordInput").addEventListener("keydown", function(e){
+      if(e.key === "Enter"){ document.getElementById("addAdminBtn").click(); }
     });
 
     renderLoginChooser();
